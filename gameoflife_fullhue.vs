@@ -14,7 +14,7 @@ const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.52259
 const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 const float PI = 3.14159265359;
 
-const float COLOR_SPEED = 10.;
+const float COLOR_SPEED = 0.013; //never a multiple of 1.
 float RADIUS    = 200.; 
 float THICKNESS = 1.;
 vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
@@ -23,14 +23,10 @@ vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
 #define check_seed_of_life
 //#define check_mouse
 
-vec3 hueShift(vec3 color, float degree){
-	
-	vec3 yiq = rgb2yiq * color;  // convert rgb to yiq 
-	float h = (degree*0.0174532925) + atan( yiq.b, yiq.g ); // calculate new hue
-	float chroma = sqrt( yiq.b * yiq.b + yiq.g * yiq.g ); // convert yiq to rgb
-	vec3 rgb = yiq2rgb * vec3( yiq.r, chroma * cos(h), chroma * sin(h) );
-	
-	return rgb;
+vec3 hueToRGB(float hue) {
+    return clamp( 
+        abs(mod(hue * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 
+        0.0, 1.0);
 }
 
 float countNeighbours() {
@@ -45,14 +41,22 @@ float countNeighbours() {
 	vec2 downright = vec2(gl_FragCoord.x+1., gl_FragCoord.y-1.)/resolution;	
 	
 	float oldLeft  = texture2D(backbuffer, left).a;
+	if(oldLeft < 1.){ oldLeft = 0.; }
 	float oldRight = texture2D(backbuffer, right).a;
+	if(oldRight < 1.){ oldRight = 0.; }
 	float oldUp    = texture2D(backbuffer, up).a;
-	float oldDown  = texture2D(backbuffer, down).a;	
+	if(oldUp < 1.){ oldUp = 0.; }
+	float oldDown  = texture2D(backbuffer, down).a;
+	if(oldDown < 1.){ oldDown = 0.; }
 	float oldul    = texture2D(backbuffer, upleft).a;
+	if(oldul < 1.){ oldul = 0.; }
 	float oldur    = texture2D(backbuffer, upright).a;
+	if(oldur < 1.){ oldur = 0.; }
 	float olddl    = texture2D(backbuffer, downleft).a;
-	float olddr    = texture2D(backbuffer, downright).a;		
-
+	if(olddl < 1.){ olddl = 0.; }
+	float olddr    = texture2D(backbuffer, downright).a;	
+	if(olddr < 1.){ olddr = 0.; }
+	
 	return oldLeft + oldRight + oldDown + oldUp + oldul + oldur + olddl + olddr;
 }
 
@@ -94,29 +98,39 @@ float shapeCheck(float outColorAlpha) {
 
 
 
-
-
-
 void main(void) {
 	vec4 outColor = vec4(0.);
 	vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
 	
-	float n = countNeighbours();	
-
+	float n = countNeighbours();
+	
+	float newColorHueShiftAmount = abs(time*COLOR_SPEED);
+	newColorHueShiftAmount = (newColorHueShiftAmount - floor(newColorHueShiftAmount));
+	if(newColorHueShiftAmount == 1.){ newColorHueShiftAmount = COLOR_SPEED; }
+	
 	if(oldColor.a == 1.){
-		if(n < 2.){ outColor.a = 0.; }             //Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+		if(n < 2.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with fewer than two live neighbours dies, as if caused by under-population.
 		if(n == 2. || n == 3.){ outColor.a = 1.; } //Any live cell with two or three live neighbours lives on to the next generation.
-		if(n > 3.){ outColor.a = 0.; }             //Any live cell with more than three live neighbours dies, as if by overcrowding.
+		if(n > 3.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with more than three live neighbours dies, as if by overcrowding.
+	}else if(oldColor.a == 0.){
+		if(n == 3.){ outColor.a = 1.; }           //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 	}else{
-		if(n == 3.){ outColor.a = 1.; }            //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+		if(n == 3.){ outColor.a = 1.; }else{ outColor.a = oldColor.a+COLOR_SPEED; }
 	}
 	
-	outColor.a = shapeCheck(outColor.a);
+	outColor.a = shapeCheck(outColor.a);               //check to see if we are within any of the shapes that keep a cell on
 	
-	oldColor.rgb = hueShift(oldColor.rgb, COLOR_SPEED); //hue shift the old color
-
-	if(outColor.a == 0.){ outColor.rgb = oldColor.rgb; }                                  //if cell is dead use old color
-	if(outColor.a == 1.){ outColor.rgb = hueShift(vec3(1., 0., 0.), time*COLOR_SPEED);  } //if cell is alive use new color
+	if(outColor.a > 1.){ 
+		outColor.a = COLOR_SPEED;
+	}
+	
+	vec3 colorForLiveCells = hueToRGB(newColorHueShiftAmount);
+	vec3 colorForDeadCells = hueToRGB(outColor.a);
+	
+	float distanceToCenter = distance(gl_FragCoord.xy, MIDDLE.xy);
+	
+	if(outColor.a < 1. && outColor.a > 0.){ outColor.rgb = colorForDeadCells; } //if cell is dead use old color
+	if(outColor.a == 1.){ outColor.rgb = colorForLiveCells;  } //if cell is alive use new color
 	
 	
 	gl_FragColor = outColor;
