@@ -53,6 +53,8 @@ void main(void) {
 	vec4 outColor = vec4(0.);
 	vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
 	
+	oldColor.rgb = hueShift(oldColor.rgb, COLOR_SPEED);
+	
 	float n = countNeighbours();		
 	
 	if(n == 2.)
@@ -69,7 +71,7 @@ void main(void) {
 		outColor.a = 0.;
 	}
 	
-	float radius = 150.; 
+	float radius = 300.; 
 	//growing and shrinking 
 	//radius = abs(cos(time/2.)*150.);
 	
