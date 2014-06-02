@@ -14,12 +14,12 @@ const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.52259
 const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 const float PI = 3.14159265359;
 
-const float COLOR_SPEED = 0.2;
+const float COLOR_SPEED = 10.;
 
 vec3 hueShift(vec3 color, float degree){
 	
 	vec3 yiq = rgb2yiq * color;  // convert rgb to yiq 
-	float h = degree + atan( yiq.b, yiq.g ); // calculate new hue
+	float h = (degree*0.0174532925) + atan( yiq.b, yiq.g ); // calculate new hue
 	float chroma = sqrt( yiq.b * yiq.b + yiq.g * yiq.g ); // convert yiq to rgb
 	vec3 rgb = yiq2rgb * vec3( yiq.r, chroma * cos(h), chroma * sin(h) );
 	
@@ -39,8 +39,8 @@ float countNeighbours() {
 	
 	float oldLeft  = texture2D(backbuffer, left).a;
 	float oldRight = texture2D(backbuffer, right).a;
-	float oldDown  = texture2D(backbuffer, up).a;
-	float oldUp    = texture2D(backbuffer, down).a;	
+	float oldUp  = texture2D(backbuffer, up).a;
+	float oldDown    = texture2D(backbuffer, down).a;	
 	float oldul    = texture2D(backbuffer, upleft).a;
 	float oldur    = texture2D(backbuffer, upright).a;
 	float olddl    = texture2D(backbuffer, downleft).a;
@@ -53,6 +53,7 @@ void main(void) {
 	vec4 outColor = vec4(0.);
 	vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
 	
+	//hue shift the old color
 	oldColor.rgb = hueShift(oldColor.rgb, COLOR_SPEED);
 	
 	float n = countNeighbours();		
@@ -71,7 +72,7 @@ void main(void) {
 		outColor.a = 0.;
 	}
 	
-	float radius = 300.; 
+	float radius = 200.; 
 	//growing and shrinking 
 	//radius = abs(cos(time/2.)*150.);
 	
