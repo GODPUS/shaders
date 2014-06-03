@@ -14,7 +14,7 @@ const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.52259
 const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 const float PI = 3.14159265359;
 
-const float COLOR_SPEED = 0.0133; //never a multiple of 1.
+const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
 float RADIUS    = 250.; 
 float THICKNESS = 1.;
 vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
@@ -101,39 +101,36 @@ float shapeCheck(float outColorAlpha) {
 
 
 void main(void) {
-	
-	//MIDDLE = mouse*resolution;
 	vec4 outColor = vec4(0.);
 	vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
 	
 	float n = countNeighbours();
 	
-	//instead of time uniform do I have access to a draw iteration uniform? if so it should be iterationNum*COLOR_SPEED
-	float newColorHueShiftAmount = abs(time*.077);
+	float newColorHueShiftAmount = abs(time*(COLOR_SPEED*16.666));
 	newColorHueShiftAmount = (newColorHueShiftAmount - floor(newColorHueShiftAmount));
-	if(newColorHueShiftAmount >= 1. || newColorHueShiftAmount <= 0.){ newColorHueShiftAmount = COLOR_SPEED; }
+	if(newColorHueShiftAmount >= 1.){ newColorHueShiftAmount = 0.; }
 	
 	if(oldColor.a == 1.){
 		if(n < 2.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with fewer than two live neighbours dies, as if caused by under-population.
 		if(n == 2. || n == 3.){ outColor.a = 1.; }         //Any live cell with two or three live neighbours lives on to the next generation.
 		if(n > 3.){ outColor.a = newColorHueShiftAmount; } //Any live cell with more than three live neighbours dies, as if by overcrowding.
-	}else if(oldColor.a == 0.){
+	}else if(oldColor.rgb == vec3(0.)){
 		if(n == 3.){ outColor.a = 1.; }           //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 	}else{
-		if(n == 3.){ outColor.a = 1.; }else{ outColor.a = oldColor.a+COLOR_SPEED; }
+		if(n == 3.){ 
+			outColor.a = 1.; 
+		}else{ 
+			outColor.a = oldColor.a+COLOR_SPEED; //hue shift old color if not black
+			if(outColor.a >= 1.){ outColor.a = 0.; } 
+		}
 	}
 	
 	outColor.a = shapeCheck(outColor.a); //check to see if we are within any of the shapes that keep a cell on
-	
-	if(outColor.a > 1.){ outColor.a = COLOR_SPEED;  }
-	
-	vec3 colorForLiveCells = hueToRGB(newColorHueShiftAmount);
-	vec3 colorForDeadCells = hueToRGB(outColor.a);
-	
+
 	float distanceToCenter = distance(gl_FragCoord.xy, MIDDLE.xy);
 	
-	if(outColor.a < 1. && outColor.a > 0.){ outColor.rgb = colorForDeadCells; } //if cell is dead use old color
-	if(outColor.a == 1.){ outColor.rgb = colorForLiveCells;  } //if cell is alive use new color
+	if(outColor.a < 1. && oldColor.rgb != vec3(0.)){ outColor.rgb = hueToRGB(outColor.a); } //if cell is dead use old hue shift amount
+	if(outColor.a == 1.){ outColor.rgb = hueToRGB(newColorHueShiftAmount);  } //if cell is alive use new hue shift amount
 	
 	
 	gl_FragColor = outColor;
