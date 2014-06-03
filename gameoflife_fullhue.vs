@@ -14,11 +14,12 @@ const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.52259
 const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 const float PI = 3.14159265359;
 
-const float COLOR_SPEED = 0.013; //never a multiple of 1.
-float RADIUS    = 200.; 
+const float COLOR_SPEED = 0.0133; //never a multiple of 1.
+float RADIUS    = 250.; 
 float THICKNESS = 1.;
 vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
 
+//the square requires a thickness of at least 2.
 //#define check_square
 #define check_seed_of_life
 //#define check_mouse
@@ -73,7 +74,7 @@ float shapeCheck(float outColorAlpha) {
 	#ifdef check_seed_of_life
 		for(int i = 1; i <= 6; i++)
 		{	
-			float rotation = 30.;
+			float rotation = 0.;
 			//rotation = time*10.; //spinning
 			
 			float angle = (((360./6.)*float(i))+rotation)*0.0174532925;
@@ -104,9 +105,9 @@ void main(void) {
 	
 	float n = countNeighbours();
 	
-	float newColorHueShiftAmount = abs(time*COLOR_SPEED);
+	float newColorHueShiftAmount = abs(time*.077);
 	newColorHueShiftAmount = (newColorHueShiftAmount - floor(newColorHueShiftAmount));
-	if(newColorHueShiftAmount == 1.){ newColorHueShiftAmount = COLOR_SPEED; }
+	if(newColorHueShiftAmount >= 1. || newColorHueShiftAmount <= 0.){ newColorHueShiftAmount = COLOR_SPEED; }
 	
 	if(oldColor.a == 1.){
 		if(n < 2.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with fewer than two live neighbours dies, as if caused by under-population.
@@ -120,9 +121,7 @@ void main(void) {
 	
 	outColor.a = shapeCheck(outColor.a);               //check to see if we are within any of the shapes that keep a cell on
 	
-	if(outColor.a > 1.){ 
-		outColor.a = COLOR_SPEED;
-	}
+	if(outColor.a > 1.){ outColor.a = COLOR_SPEED;  }
 	
 	vec3 colorForLiveCells = hueToRGB(newColorHueShiftAmount);
 	vec3 colorForDeadCells = hueToRGB(outColor.a);
