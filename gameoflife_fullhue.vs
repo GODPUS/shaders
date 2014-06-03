@@ -62,6 +62,7 @@ float countNeighbours() {
 }
 
 float shapeCheck(float outColorAlpha) {
+	
 	#ifdef check_square
 		if(gl_FragCoord.x > MIDDLE.x-RADIUS && gl_FragCoord.x < MIDDLE.x+RADIUS && gl_FragCoord.y > MIDDLE.y-RADIUS && gl_FragCoord.y < MIDDLE.y+RADIUS){
 		  
@@ -74,7 +75,7 @@ float shapeCheck(float outColorAlpha) {
 	#ifdef check_seed_of_life
 		for(int i = 1; i <= 6; i++)
 		{	
-			float rotation = 0.;
+			float rotation = 30.;
 			//rotation = time*10.; //spinning
 			
 			float angle = (((360./6.)*float(i))+rotation)*0.0174532925;
@@ -100,26 +101,29 @@ float shapeCheck(float outColorAlpha) {
 
 
 void main(void) {
+	
+	//MIDDLE = mouse*resolution;
 	vec4 outColor = vec4(0.);
 	vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
 	
 	float n = countNeighbours();
 	
+	//instead of time uniform do I have access to a draw iteration uniform? if so it should be iterationNum*COLOR_SPEED
 	float newColorHueShiftAmount = abs(time*.077);
 	newColorHueShiftAmount = (newColorHueShiftAmount - floor(newColorHueShiftAmount));
 	if(newColorHueShiftAmount >= 1. || newColorHueShiftAmount <= 0.){ newColorHueShiftAmount = COLOR_SPEED; }
 	
 	if(oldColor.a == 1.){
 		if(n < 2.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with fewer than two live neighbours dies, as if caused by under-population.
-		if(n == 2. || n == 3.){ outColor.a = 1.; } //Any live cell with two or three live neighbours lives on to the next generation.
-		if(n > 3.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with more than three live neighbours dies, as if by overcrowding.
+		if(n == 2. || n == 3.){ outColor.a = 1.; }         //Any live cell with two or three live neighbours lives on to the next generation.
+		if(n > 3.){ outColor.a = newColorHueShiftAmount; } //Any live cell with more than three live neighbours dies, as if by overcrowding.
 	}else if(oldColor.a == 0.){
 		if(n == 3.){ outColor.a = 1.; }           //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
 	}else{
 		if(n == 3.){ outColor.a = 1.; }else{ outColor.a = oldColor.a+COLOR_SPEED; }
 	}
 	
-	outColor.a = shapeCheck(outColor.a);               //check to see if we are within any of the shapes that keep a cell on
+	outColor.a = shapeCheck(outColor.a); //check to see if we are within any of the shapes that keep a cell on
 	
 	if(outColor.a > 1.){ outColor.a = COLOR_SPEED;  }
 	
