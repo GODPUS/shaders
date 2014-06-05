@@ -1,5 +1,8 @@
 // Conway's Game of Life, by Michael Parisi
-// we store the state of the pixel in the alpha channel
+// we store the state of the pixel and the hue shift value in the alpha channel
+// cell is on if alpha is 1.
+// cell that has always been dead has rgba of 0.
+// cell that was once alive has alpha between 0. and 0.999 (the hue shift value)
 
 #ifdef GL_ES
 precision highp float;
@@ -15,14 +18,18 @@ const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6
 const float PI = 3.14159265359;
 
 const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
-float RADIUS    = 250.; 
-float THICKNESS = 1.;
+float RADIUS    = 1000.; 
+float THICKNESS = 1.; //the square requires a thickness of at least 2.
 vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
+bool CHECK_SHAPE_ONCE = true;
 
-//the square requires a thickness of at least 2.
-//#define check_square
-#define check_seed_of_life
-//#define check_mouse
+float GRADIENT_FREQUENCY = .0005;
+#define GRADIENT
+
+//#define CHECK_SQUARE
+#define CHECK_CIRCLE
+//#define CHECK_SEED_OF_LIFE
+//#define CHECK_MOUSE
 
 vec3 hueToRGB(float hue) {
     return clamp( 
@@ -63,7 +70,7 @@ float countNeighbours() {
 
 float shapeCheck(float outColorAlpha) {
 	
-	#ifdef check_square
+	#ifdef CHECK_SQUARE
 		if(gl_FragCoord.x > MIDDLE.x-RADIUS && gl_FragCoord.x < MIDDLE.x+RADIUS && gl_FragCoord.y > MIDDLE.y-RADIUS && gl_FragCoord.y < MIDDLE.y+RADIUS){
 		  
 			if(gl_FragCoord.x < MIDDLE.x-(RADIUS-THICKNESS) || gl_FragCoord.x > MIDDLE.x+(RADIUS-THICKNESS) || gl_FragCoord.y < MIDDLE.y-(RADIUS-THICKNESS) || gl_FragCoord.y > MIDDLE.y+(RADIUS-THICKNESS)){
@@ -71,14 +78,18 @@ float shapeCheck(float outColorAlpha) {
 			}
 		}
 	#endif
+
+	#ifdef CHECK_CIRCLE
+		if(distance(gl_FragCoord.xy, MIDDLE) < RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
+	#endif
 	
-	#ifdef check_seed_of_life
+	#ifdef CHECK_SEED_OF_LIFE
 		for(int i = 1; i <= 6; i++)
 		{	
 			float rotation = 30.;
 			//rotation = time*10.; //spinning
 			
-			float angle = (((360./6.)*float(i))+rotation)*0.0174532925;
+			float angle = (((360./6.)*float(i))+rotation)*0.0174532925; //0.0174532925 degrees in a radian
 			vec2 circleCenter = vec2(MIDDLE.x+(cos(angle)*RADIUS), MIDDLE.y+(sin(angle)*RADIUS));
 			
 			if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS)-THICKNESS) )
@@ -86,11 +97,11 @@ float shapeCheck(float outColorAlpha) {
 				outColorAlpha = 1.;
 			}
 		}
-		
+
 		if(distance(gl_FragCoord.xy, MIDDLE) < RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
 	#endif
 	
-	#ifdef check_mouse
+	#ifdef CHECK_MOUSE
 		vec2 mousePos = mouse * resolution;
 		if(distance( gl_FragCoord.xy, mousePos) < (RADIUS/2.) ){ outColorAlpha = 1.; }
 	#endif
@@ -101,12 +112,18 @@ float shapeCheck(float outColorAlpha) {
 
 
 void main(void) {
+	float distanceToCenter = 0.;
+	
+	#ifdef GRADIENT
+		distanceToCenter = distance(gl_FragCoord.xy, MIDDLE.xy)*GRADIENT_FREQUENCY;
+	#endif
+	
 	vec4 outColor = vec4(0.);
 	vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
 	
 	float n = countNeighbours();
 	
-	float newColorHueShiftAmount = abs(time*(COLOR_SPEED*16.666));
+	float newColorHueShiftAmount = abs(time*(COLOR_SPEED*16.666)+(distanceToCenter)); //16.666 is a ratio between the time and COLOR_SPEED... I assume it is the framerate
 	newColorHueShiftAmount = (newColorHueShiftAmount - floor(newColorHueShiftAmount));
 	if(newColorHueShiftAmount >= 1.){ newColorHueShiftAmount = 0.; }
 	
@@ -125,9 +142,12 @@ void main(void) {
 		}
 	}
 	
-	outColor.a = shapeCheck(outColor.a); //check to see if we are within any of the shapes that keep a cell on
-
-	float distanceToCenter = distance(gl_FragCoord.xy, MIDDLE.xy);
+	//check to see if we are within any of the shapes that keep a cell on
+	if(CHECK_SHAPE_ONCE && oldColor.rgb == vec3(0.)){ 
+		outColor.a = shapeCheck(outColor.a); //run once
+	}else{
+		outColor.a = shapeCheck(outColor.a); //run every frame
+	} 
 	
 	if(outColor.a < 1. && oldColor.rgb != vec3(0.)){ outColor.rgb = hueToRGB(outColor.a); } //if cell is dead use old hue shift amount
 	if(outColor.a == 1.){ outColor.rgb = hueToRGB(newColorHueShiftAmount);  } //if cell is alive use new hue shift amount
