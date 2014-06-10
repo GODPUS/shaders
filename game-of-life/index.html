@@ -49,10 +49,10 @@
 			const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
 			const float SQRT3 = 1.73205080757;
 
-			float RADIUS    = 40.; 
+			float RADIUS    = 55.; 
 			float THICKNESS = 1.; //the square requires a thickness of at least 2.
 			vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
-			bool CHECK_SHAPE_ONCE = false;
+			bool CHECK_SHAPE_ONCE = true;
 
 			float GRADIENT_FREQUENCY = .0005;
 			#define GRADIENT
@@ -117,7 +117,7 @@
 				#ifdef CHECK_SEED_OF_LIFE
 					int initialNum = 6;
 
-					for(int j = 1; j <= 3; j++)
+					for(int j = 1; j <= 2; j++)
 					{
 						int numCircles = (initialNum*j);
 
@@ -129,16 +129,17 @@
 								//rotation = time*10.; //spinning
 								
 								float angle = (((360./float(numCircles))*float(i))+rotation)*0.0174532925; //0.0174532925 degrees in a radian
-								vec2 circleCenter = vec2(0., 0.);
+								vec2 circleCenter = vec2(-100., -100.);
 
 								if(mod(float(i), float(j)) == 0.)
 								{
 									circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*2.)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*2.)*float(j))));
 								}else{
-									circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*SQRT3)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*SQRT3)*float(j))));
+									//circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*SQRT3)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*SQRT3)*float(j))));
+									//break;
 								}
 
-								if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS*2.) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS*2.)-THICKNESS) )
+								if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS)-THICKNESS) )
 								{
 									outColorAlpha = 1.;
 								}
@@ -150,12 +151,12 @@
 					
 
 					//center circle
-					if(distance(gl_FragCoord.xy, MIDDLE) < (RADIUS*2.) && distance(gl_FragCoord.xy, MIDDLE) > ((RADIUS*2.)-THICKNESS) ){ outColorAlpha = 1.; }
+					if(distance(gl_FragCoord.xy, MIDDLE) < (RADIUS) && distance(gl_FragCoord.xy, MIDDLE) > ((RADIUS)-THICKNESS) ){ outColorAlpha = 1.; }
 				#endif
 				
 				#ifdef CHECK_MOUSE
 					vec2 mousePos = mouse * resolution;
-					if(distance(gl_FragCoord.xy, mousePos) < (RADIUS/2.) ){ outColorAlpha = 1.; }
+					if(distance(gl_FragCoord.xy, mousePos) < (RADIUS) && distance(gl_FragCoord.xy, mousePos) > ((RADIUS)-THICKNESS) ){ outColorAlpha = 1.; }
 				#endif
 				
 				return outColorAlpha;
@@ -197,7 +198,7 @@
 				//check to see if we are within any of the shapes that keep a cell on
 				if(CHECK_SHAPE_ONCE && oldColor.rgb == vec3(0.)){ 
 					outColor.a = shapeCheck(outColor.a); //run once
-				}else{
+				}else if(!CHECK_SHAPE_ONCE){
 					outColor.a = shapeCheck(outColor.a); //run every frame
 				} 
 				
