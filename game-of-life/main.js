@@ -1,13 +1,13 @@
-var WIDTH = window.innerWidth;
-var HEIGHT = window.innerHeight;
+var WIDTH = 1024;
+var HEIGHT = 1024;
 var MOUSE = { x: 0, y: 0 };
 var CLOCK = new THREE.Clock();
 
 var basicVertexShader = document.getElementById('shader-vs').text;
 var simFragmentShader = document.getElementById('shader-gol-fs').text;
 
-var simBuffer =  new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
-var backBuffer = new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
+var simBuffer =  new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat } );
+var backBuffer = new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat } );
 
 var simUniforms = { 
 	"backbuffer" : { type: "t",  value: backBuffer },

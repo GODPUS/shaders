@@ -17,7 +17,8 @@
     			padding: 0px; 
     			position: absolute; 
     			top: 0px; 
-    			left: 0px; 
+    			left: 0px;
+    			background: #555;
     		}
     	</style> 
     </head> 
@@ -44,22 +45,21 @@
 			uniform vec2 resolution;
 			uniform sampler2D backbuffer;
 
-			const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.522591, 0.114, -0.321263, 0.311135 );
-			const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 			const float PI = 3.14159265359;
-
 			const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
-			float RADIUS    = 300.; 
+			const float SQRT3 = 1.73205080757;
+
+			float RADIUS    = 40.; 
 			float THICKNESS = 1.; //the square requires a thickness of at least 2.
 			vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
-			bool CHECK_SHAPE_ONCE = true;
+			bool CHECK_SHAPE_ONCE = false;
 
 			float GRADIENT_FREQUENCY = .0005;
 			#define GRADIENT
 
 			//#define CHECK_SQUARE
-			#define CHECK_CIRCLE
-			//#define CHECK_SEED_OF_LIFE
+			//#define CHECK_CIRCLE
+			#define CHECK_SEED_OF_LIFE
 			//#define CHECK_MOUSE
 
 			vec3 hueToRGB(float hue) {
@@ -115,21 +115,42 @@
 				#endif
 				
 				#ifdef CHECK_SEED_OF_LIFE
-					for(int i = 1; i <= 6; i++)
-					{	
-						float rotation = 30.;
-						//rotation = time*10.; //spinning
-						
-						float angle = (((360./6.)*float(i))+rotation)*0.0174532925; //0.0174532925 degrees in a radian
-						vec2 circleCenter = vec2(MIDDLE.x+(cos(angle)*RADIUS), MIDDLE.y+(sin(angle)*RADIUS));
-						
-						if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS)-THICKNESS) )
-						{
-							outColorAlpha = 1.;
+					int initialNum = 6;
+
+					for(int j = 1; j <= 3; j++)
+					{
+						int numCircles = (initialNum*j);
+
+						for(int i = 1; i <= 10000; i++)
+						{	
+							if(i <= numCircles)
+							{
+								float rotation = 30.;
+								//rotation = time*10.; //spinning
+								
+								float angle = (((360./float(numCircles))*float(i))+rotation)*0.0174532925; //0.0174532925 degrees in a radian
+								vec2 circleCenter = vec2(0., 0.);
+
+								if(mod(float(i), float(j)) == 0.)
+								{
+									circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*2.)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*2.)*float(j))));
+								}else{
+									circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*SQRT3)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*SQRT3)*float(j))));
+								}
+
+								if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS*2.) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS*2.)-THICKNESS) )
+								{
+									outColorAlpha = 1.;
+								}
+							}else{
+								break;
+							}
 						}
 					}
+					
 
-					if(distance(gl_FragCoord.xy, MIDDLE) < RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
+					//center circle
+					if(distance(gl_FragCoord.xy, MIDDLE) < (RADIUS*2.) && distance(gl_FragCoord.xy, MIDDLE) > ((RADIUS*2.)-THICKNESS) ){ outColorAlpha = 1.; }
 				#endif
 				
 				#ifdef CHECK_MOUSE
