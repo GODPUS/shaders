@@ -10,8 +10,15 @@
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
     	<style>
-    		html, body { width: 100%; height: 100%; margin: 0px; padding: 0px; position: absolute; }
-    		canvas { width: 100%; height: 100% }
+    		html, body, canvas { 
+    			width: 100%; 
+    			height: 100%; 
+    			margin: 0px; 
+    			padding: 0px; 
+    			position: absolute; 
+    			top: 0px; 
+    			left: 0px; 
+    		}
     	</style> 
     </head> 
     <body>
@@ -127,7 +134,7 @@
 				
 				#ifdef CHECK_MOUSE
 					vec2 mousePos = mouse * resolution;
-					if(distance( gl_FragCoord.xy, mousePos) < (RADIUS/2.) ){ outColorAlpha = 1.; }
+					if(distance(gl_FragCoord.xy, mousePos) < (RADIUS/2.) ){ outColorAlpha = 1.; }
 				#endif
 				
 				return outColorAlpha;
