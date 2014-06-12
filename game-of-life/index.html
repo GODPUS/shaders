@@ -49,17 +49,17 @@
 			const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
 			const float SQRT3 = 1.73205080757;
 
-			float RADIUS    = 55.; 
-			float THICKNESS = 1.; //the square requires a thickness of at least 2.
+			float RADIUS    = 300.; 
+			float THICKNESS = 300.; //the square requires a thickness of at least 2.
 			vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
 			bool CHECK_SHAPE_ONCE = true;
 
 			float GRADIENT_FREQUENCY = .0005;
 			#define GRADIENT
 
-			//#define CHECK_SQUARE
+			#define CHECK_SQUARE
 			//#define CHECK_CIRCLE
-			#define CHECK_SEED_OF_LIFE
+			//#define CHECK_SEED_OF_LIFE
 			//#define CHECK_MOUSE
 
 			vec3 hueToRGB(float hue) {

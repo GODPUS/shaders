@@ -17,7 +17,7 @@ void main( void ) {
 
 	int initialNum = 6;
 
-	for(int j = 1; j <= 5; j++)
+	for(int j = 1; j <= 3; j++)
 	{
 		int numCircles = (initialNum*j);
 
@@ -30,18 +30,19 @@ void main( void ) {
 				
 				float angle = (((360./float(numCircles))*float(i))+rotation)*0.0174532925; //0.0174532925 degrees in a radian
 				vec2 circleCenter = vec2(0., 0.);
-				float SIZE = 0.;
-
+				float DIST = 0.;
+				
+				
 				if(mod(float(i), float(j)) == 0.)
 				{
-					SIZE = RADIUS*2.;
-					circleCenter = vec2(MIDDLE.x+(cos(angle)*(SIZE*float(j))), MIDDLE.y+(sin(angle)*(SIZE*float(j))));
+					DIST = (RADIUS*2.)*float(j);
 				}else{
-					SIZE = RADIUS*(SQRT3);
-					circleCenter = vec2(MIDDLE.x+(cos(angle)*(SIZE*float(j))), MIDDLE.y+(sin(angle)*(SIZE*float(j))));
+					DIST = (RADIUS*SQRT3)*float(j);
 				}
 				
-				if(distance(gl_FragCoord.xy, circleCenter) < RADIUS && distance(gl_FragCoord.xy, circleCenter) > (RADIUS-THICKNESS) )
+				circleCenter = vec2(MIDDLE.x+(cos(angle)*DIST), MIDDLE.y+(sin(angle)*DIST));
+				
+				if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS)-THICKNESS) )
 				{
 					newColor.r = 1.;
 				}

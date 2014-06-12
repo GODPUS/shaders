@@ -1,5 +1,6 @@
-var WIDTH = 1024;
-var HEIGHT = 1024;
+var WIDTH = Math.round(window.innerWidth);
+var HEIGHT = Math.round(window.innerHeight);
+//WIDTH = HEIGHT = 1024;
 var MOUSE = { x: 0, y: 0 };
 var CLOCK = new THREE.Clock();
 
