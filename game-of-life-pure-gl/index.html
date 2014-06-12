@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<!-- saved from url=(0024)http://glsl.heroku.com/e -->
+<html lang="en" data-ember-extension="1"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>GLSL Sandbox</title>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+		<style>
+			body {
+				background-color: #000000;
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+			}
+		</style>
+	</head>
+	<body data-ember-extension="1" style="cursor: default;">
+
+	<link rel="stylesheet" href="http://glsl.heroku.com/css/codemirror.css">
+	<link rel="stylesheet" href="http://glsl.heroku.com/css/default.css">
+
+
+	<script src="./js/setup_ui.js"></script>
+	<script src="./js/setup_gl.js"></script>
+
+<script id="mainFragmentShader" type="x-shader/x-fragment">
+
+	// Conway's Game of Life, by Michael Parisi
+	// we store the state of the pixel and the hue shift value in the alpha channel
+	// cell is on if alpha is 1.
+	// cell that has always been dead has rgba of 0.
+	// cell that was once alive has alpha between 0. and 0.999 (the hue shift value)
+
+	#ifdef GL_ES
+	precision highp float;
+	#endif
+
+	uniform float time;
+	uniform vec2 mouse;
+	uniform vec2 resolution;
+	uniform sampler2D backbuffer;
+
+	const float PI = 3.14159265359;
+	const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
+	const float SQRT3 = 1.73205080757;
+
+	float RADIUS    = 130.; 
+	float THICKNESS = 1.; //the square requires a thickness of at least 2.
+	vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
+	bool CHECK_SHAPE_ONCE = true;
+
+	float GRADIENT_FREQUENCY = .0005;
+	#define GRADIENT
+
+	//#define CHECK_SQUARE
+	//#define CHECK_CIRCLE
+	//#define CHECK_SEED_OF_LIFE
+	//#define CHECK_MOUSE
+
+	#define CHECK_FLOWER_OF_LIFE
+	const float NUM_FLOWER_LAYERS = 2.;
+	float FLOWER_CIRCLE_RADIUS = RADIUS; //do RADIUS/2. for metatron
+
+	vec3 hueToRGB(float hue) {
+	    return clamp( 
+	        abs(mod(hue * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 
+	        0.0, 1.0);
+	}
+
+	float countNeighbours() {
+		
+		vec2 left      = vec2(gl_FragCoord.x-1., gl_FragCoord.y)/resolution;
+		vec2 right     = vec2(gl_FragCoord.x+1., gl_FragCoord.y)/resolution;
+		vec2 up        = vec2(gl_FragCoord.x, gl_FragCoord.y+1.)/resolution;
+		vec2 down      = vec2(gl_FragCoord.x, gl_FragCoord.y-1.)/resolution;	
+		vec2 upleft    = vec2(gl_FragCoord.x-1., gl_FragCoord.y+1.)/resolution;
+		vec2 upright   = vec2(gl_FragCoord.x+1., gl_FragCoord.y+1.)/resolution;
+		vec2 downleft  = vec2(gl_FragCoord.x-1., gl_FragCoord.y-1.)/resolution;
+		vec2 downright = vec2(gl_FragCoord.x+1., gl_FragCoord.y-1.)/resolution;	
+		
+		float oldLeft  = texture2D(backbuffer, left).a;
+		if(oldLeft < 1.){ oldLeft = 0.; }
+		float oldRight = texture2D(backbuffer, right).a;
+		if(oldRight < 1.){ oldRight = 0.; }
+		float oldUp    = texture2D(backbuffer, up).a;
+		if(oldUp < 1.){ oldUp = 0.; }
+		float oldDown  = texture2D(backbuffer, down).a;
+		if(oldDown < 1.){ oldDown = 0.; }
+		float oldul    = texture2D(backbuffer, upleft).a;
+		if(oldul < 1.){ oldul = 0.; }
+		float oldur    = texture2D(backbuffer, upright).a;
+		if(oldur < 1.){ oldur = 0.; }
+		float olddl    = texture2D(backbuffer, downleft).a;
+		if(olddl < 1.){ olddl = 0.; }
+		float olddr    = texture2D(backbuffer, downright).a;	
+		if(olddr < 1.){ olddr = 0.; }
+		
+		return oldLeft + oldRight + oldDown + oldUp + oldul + oldur + olddl + olddr;
+	}
+
+	float shapeCheck(float outColorAlpha) {
+		
+		#ifdef CHECK_SQUARE
+			if(gl_FragCoord.x > MIDDLE.x-RADIUS && gl_FragCoord.x < MIDDLE.x+RADIUS && gl_FragCoord.y > MIDDLE.y-RADIUS && gl_FragCoord.y < MIDDLE.y+RADIUS){
+			  
+				if(gl_FragCoord.x < MIDDLE.x-(RADIUS-THICKNESS) || gl_FragCoord.x > MIDDLE.x+(RADIUS-THICKNESS) || gl_FragCoord.y < MIDDLE.y-(RADIUS-THICKNESS) || gl_FragCoord.y > MIDDLE.y+(RADIUS-THICKNESS)){
+					outColorAlpha = 1.;
+				}
+			}
+		#endif
+
+		#ifdef CHECK_CIRCLE
+			if(distance(gl_FragCoord.xy, MIDDLE) < RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
+		#endif
+
+		#ifdef CHECK_FLOWER_OF_LIFE
+			vec2 position = vec2(0.);
+
+			for(float i = 1.; i <= NUM_FLOWER_LAYERS; i++)
+			{		
+				for(float j = 1.; j <= 6.; j++){
+					
+					for(float k = 1.; k <= NUM_FLOWER_LAYERS; k++){
+						if(k <= i)
+						{
+							float angle = (float(j)*60.)+30.;
+							float angle2 = angle+120.;
+							angle *= 0.0174532925; //degrees to radians
+							angle2 *= 0.0174532925; //degrees to radians
+							
+							
+							position.x = MIDDLE.x+(cos(angle)*(RADIUS*i));
+							position.x += (cos(angle2)*RADIUS)*k;
+							position.y = MIDDLE.y+(sin(angle)*(RADIUS*i));
+							position.y += (sin(angle2)*RADIUS)*k;
+							
+							if(distance(gl_FragCoord.xy, position) < FLOWER_CIRCLE_RADIUS && distance(gl_FragCoord.xy, position) > (FLOWER_CIRCLE_RADIUS-THICKNESS) )
+							{
+								outColorAlpha = 1.;
+							}
+							
+						}else{
+							break;
+						}
+					}
+				}
+					
+			}
+			
+			//center circle
+			if(distance(gl_FragCoord.xy, MIDDLE) < FLOWER_CIRCLE_RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (FLOWER_CIRCLE_RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
+		#endif
+		
+		#ifdef CHECK_SEED_OF_LIFE
+			int initialNum = 6;
+
+			for(int j = 1; j <= 2; j++)
+			{
+				int numCircles = (initialNum*j);
+
+				for(int i = 1; i <= 10000; i++)
+				{	
+					if(i <= numCircles)
+					{
+						float rotation = 30.;
+						//rotation = time*10.; //spinning
+						
+						float angle = (((360./float(numCircles))*float(i))+rotation)*0.0174532925; //0.0174532925 degrees in a radian
+						vec2 circleCenter = vec2(-100., -100.);
+
+						if(mod(float(i), float(j)) == 0.)
+						{
+							circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*2.)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*2.)*float(j))));
+						}else{
+							//circleCenter = vec2(MIDDLE.x+(cos(angle)*((RADIUS*SQRT3)*float(j))), MIDDLE.y+(sin(angle)*((RADIUS*SQRT3)*float(j))));
+							//break;
+						}
+
+						if(distance(gl_FragCoord.xy, circleCenter) < (RADIUS) && distance(gl_FragCoord.xy, circleCenter) > ((RADIUS)-THICKNESS) )
+						{
+							outColorAlpha = 1.;
+						}
+					}else{
+						break;
+					}
+				}
+			}
+			
+
+			//center circle
+			if(distance(gl_FragCoord.xy, MIDDLE) < (RADIUS) && distance(gl_FragCoord.xy, MIDDLE) > ((RADIUS)-THICKNESS) ){ outColorAlpha = 1.; }
+		#endif
+		
+		#ifdef CHECK_MOUSE
+			vec2 mousePos = mouse * resolution;
+			if(distance(gl_FragCoord.xy, mousePos) < (RADIUS) && distance(gl_FragCoord.xy, mousePos) > ((RADIUS)-THICKNESS) ){ outColorAlpha = 1.; }
+		#endif
+		
+		return outColorAlpha;
+	}
+
+
+
+	void main(void) {
+		float distanceToCenter = 0.;
+		
+		#ifdef GRADIENT
+			distanceToCenter = distance(gl_FragCoord.xy, MIDDLE.xy)*GRADIENT_FREQUENCY;
+		#endif
+		
+		vec4 outColor = vec4(0.);
+		vec4 oldColor = texture2D(backbuffer, gl_FragCoord.xy/resolution);
+		
+		float n = countNeighbours();
+		
+		float newColorHueShiftAmount = abs(time*(COLOR_SPEED*16.666)+(distanceToCenter)); //16.666 is a ratio between the time and COLOR_SPEED... I assume it is the framerate
+		newColorHueShiftAmount = (newColorHueShiftAmount - floor(newColorHueShiftAmount));
+		if(newColorHueShiftAmount >= 1.){ newColorHueShiftAmount = 0.; }
+		
+		if(oldColor.a == 1.){
+			if(n < 2.){ outColor.a = newColorHueShiftAmount; }   //Any live cell with fewer than two live neighbours dies, as if caused by under-population.
+			if(n == 2. || n == 3.){ outColor.a = 1.; }         //Any live cell with two or three live neighbours lives on to the next generation.
+			if(n > 3.){ outColor.a = newColorHueShiftAmount; } //Any live cell with more than three live neighbours dies, as if by overcrowding.
+		}else if(oldColor.rgb == vec3(0.)){
+			if(n == 3.){ outColor.a = 1.; }           //Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
+		}else{
+			if(n == 3.){ 
+				outColor.a = 1.; 
+			}else{ 
+				outColor.a = oldColor.a+COLOR_SPEED; //hue shift old color if not black
+				if(outColor.a >= 1.){ outColor.a = 0.; } 
+			}
+		}
+		
+		//check to see if we are within any of the shapes that keep a cell on
+		if(CHECK_SHAPE_ONCE && oldColor.rgb == vec3(0.)){ 
+			outColor.a = shapeCheck(outColor.a); //run once
+		}else if(!CHECK_SHAPE_ONCE){
+			outColor.a = shapeCheck(outColor.a); //run every frame
+		} 
+		
+		if(outColor.a < 1. && oldColor.rgb != vec3(0.)){ outColor.rgb = hueToRGB(outColor.a); } //if cell is dead use old hue shift amount
+		if(outColor.a == 1.){ outColor.rgb = hueToRGB(newColorHueShiftAmount);  } //if cell is alive use new hue shift amount
+		
+		
+		gl_FragColor = outColor;
+	}
+
+</script>
+
+<script id="fragmentShader" type="x-shader/x-fragment">
+
+	#ifdef GL_ES
+	precision mediump float;
+	#endif
+
+	uniform vec2 resolution;
+	uniform sampler2D texture;
+
+	void main() {
+
+		vec2 uv = gl_FragCoord.xy / resolution.xy;
+		gl_FragColor = texture2D( texture, uv );
+
+	}
+
+</script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+
+	attribute vec3 position;
+
+	void main() {
+
+		gl_Position = vec4( position, 1.0 );
+
+	}
+
+</script>
+
+<script id="surfaceVertexShader" type="x-shader/x-vertex">
+
+	attribute vec3 position;
+	attribute vec2 surfacePosAttrib;
+	varying vec2 surfacePosition;
+
+	void main() {
+
+		surfacePosition = surfacePosAttrib;
+		gl_Position = vec4( position, 1.0 );
+
+	}
+
+</script>
+
+<script type="text/javascript" src="chrome-extension://bmdblncegkenkacieihfhpjfppoconhi/in-page-script.js"></script></body></html>

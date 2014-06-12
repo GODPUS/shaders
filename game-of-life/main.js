@@ -1,51 +1,52 @@
-var WIDTH = Math.round(window.innerWidth);
-var HEIGHT = Math.round(window.innerHeight);
-WIDTH = HEIGHT = 1024;
+var WIDTH = window.innerWidth;
+var HEIGHT = window.innerHeight;
 var MOUSE = { x: 0, y: 0 };
 var CLOCK = new THREE.Clock();
+var BUFFER_STATE = 0;
 
-var basicVertexShader = document.getElementById('shader-vs').text;
-var simFragmentShader = document.getElementById('shader-gol-fs').text;
+var canvas, simUniforms, simScene, simBuffer, backBuffer, displayScene, camera, renderer, outQuad;
 
-var simBuffer =  new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat } );
-var backBuffer = new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat } );
+function init(){
+  var basicVertexShader = document.getElementById('shader-vs').text;
+  var simFragmentShader = document.getElementById('shader-gol-fs').text;
 
-var simUniforms = { 
-	"backbuffer" : { type: "t",  value: backBuffer },
-	"resolution" : { type: "v2", value: new THREE.Vector2(WIDTH, HEIGHT) },
-	"iteration"  : { type: "i",  value: 0 },
-	"time"       : { type: "f",  value: 0.0 },
-	"mouse"      : { type: "v2", value: new THREE.Vector2(MOUSE.x, MOUSE.y) }
-};
+  camera = new THREE.Camera();
+  renderer = new THREE.WebGLRenderer();
+  canvas = renderer.domElement;
+  document.body.appendChild(canvas);
+  renderer.autoClear = false;
 
+  createBuffers();
 
-var simScene = new THREE.Scene();
-var displayScene = new THREE.Scene();
+  simUniforms = { 
+    "backbuffer" : { type: "t",  value: backBuffer },
+    "resolution" : { type: "v2", value: new THREE.Vector2(WIDTH, HEIGHT) },
+    "iteration"  : { type: "i",  value: 0 },
+    "time"       : { type: "f",  value: 0.0 },
+    "mouse"      : { type: "v2", value: new THREE.Vector2(MOUSE.x, MOUSE.y) }
+  };
 
-var simQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2,0), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: basicVertexShader, fragmentShader: simFragmentShader}));
-simScene.add(simQuad);
-simScene.add(camera);
+  simScene = new THREE.Scene();
+  displayScene = new THREE.Scene();
 
-var outQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2,0), new THREE.MeshBasicMaterial({ map: simBuffer }));
-displayScene.add(outQuad);
-displayScene.add(camera);
+  var simQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2,0), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: basicVertexShader, fragmentShader: simFragmentShader}));
+  simScene.add(simQuad);
+  simScene.add(camera);
 
-var camera = new THREE.Camera();
-var renderer = new THREE.WebGLRenderer();
-renderer.setSize(WIDTH, HEIGHT);
-document.body.appendChild(renderer.domElement);
-renderer.autoClear = false;
-var bufferState = 0;
+  outQuad = new THREE.Mesh(new THREE.PlaneGeometry(2,2,0), new THREE.MeshBasicMaterial({ map: simBuffer }));
+  displayScene.add(outQuad);
+  displayScene.add(camera);
+}
 
 function render() {
-   if (!bufferState) {
+   if (!BUFFER_STATE) {
       renderer.render(simScene, camera, backBuffer, false);
       simUniforms.backbuffer.value = backBuffer;
-      bufferState = 1;
+      BUFFER_STATE = 1;
    } else {
       renderer.render(simScene, camera, simBuffer, false);
       simUniforms.backbuffer.value = simBuffer;
-      bufferState = 0;
+      BUFFER_STATE = 0;
    } 
 
    simUniforms.iteration.value += 1;
@@ -56,14 +57,33 @@ function render() {
    requestAnimationFrame(render);
 }
 
-window.onload = function(){ requestAnimationFrame(render); }
-window.onresize = function(){ 
-	WIDTH = window.innerWidth;
-	HEIGHT = window.innerHeight;
-	renderer.setSize(WIDTH, HEIGHT);
-	renderer.setViewport(0, 0, WIDTH, HEIGHT);
-	renderer.clear(false);
+function resize() {
+  WIDTH = window.innerWidth;
+  HEIGHT = window.innerHeight;
+  renderer.setSize(WIDTH, HEIGHT);
+  renderer.setViewport(0, 0, WIDTH, HEIGHT);
+  canvas.style.width = WIDTH + 'px';
+  canvas.style.height = HEIGHT + 'px';
+  
+  createBuffers();
+  outQuad.material = new THREE.MeshBasicMaterial({ map: simBuffer });
+
+  simUniforms.resolution.value = new THREE.Vector2(WIDTH, HEIGHT);
+  renderer.clear();
 }
+
+function createBuffers(){
+  simBuffer =  new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
+  backBuffer = new THREE.WebGLRenderTarget(WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
+}
+
+window.onload = function(){ 
+  init();
+  resize();
+  requestAnimationFrame(render); 
+}
+
+window.onresize = function(){ resize(); }
 
 document.addEventListener('mousemove', function(e){ 
     MOUSE.x = e.clientX || e.pageX; 

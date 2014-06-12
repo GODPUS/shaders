@@ -49,23 +49,22 @@
 			const float COLOR_SPEED = 0.006; //higher is faster //values between 0.1 and 0.004 work best
 			const float SQRT3 = 1.73205080757;
 
-			float RADIUS    = 70.; 
+			float RADIUS    = 100.; 
 			float THICKNESS = 1.; //the square requires a thickness of at least 2.
 			vec2 MIDDLE     = vec2(resolution.x/2.,resolution.y/2.);
-			bool CHECK_SHAPE_ONCE = true;
+			bool CHECK_SHAPE_ONCE = false;
 
 			float GRADIENT_FREQUENCY = .0005;
 			#define GRADIENT
 
-			#define CHECK_SQUARE
-			#define CHECK_CIRCLE
+			//#define CHECK_SQUARE
+			//#define CHECK_CIRCLE
 			//#define CHECK_SEED_OF_LIFE
 			//#define CHECK_MOUSE
 
-			//#define CHECK_FLOWER_OF_LIFE
-
-			const float NUM_FLOWER_LAYERS = 4.;
-			float FLOWER_CIRCLE_RADIUS = RADIUS/2.; //do RADIUS/2. for metatron
+			#define CHECK_FLOWER_OF_LIFE
+			const float NUM_FLOWER_LAYERS = 3.;
+			float FLOWER_CIRCLE_RADIUS = RADIUS; //do RADIUS/2. for metatron
 
 			vec3 hueToRGB(float hue) {
 			    return clamp( 
