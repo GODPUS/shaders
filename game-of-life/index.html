@@ -63,8 +63,8 @@
 			//#define CHECK_MOUSE
 
 			#define CHECK_FLOWER_OF_LIFE
-			const float NUM_FLOWER_LAYERS = 3.;
-			float FLOWER_CIRCLE_RADIUS = RADIUS; //do RADIUS/2. for metatron
+			const float NUM_FLOWER_LAYERS = 5.;
+			float FLOWER_CIRCLE_RADIUS = RADIUS/6.; //do RADIUS/2. for metatron
 
 			vec3 hueToRGB(float hue) {
 			    return clamp( 
@@ -106,7 +106,7 @@
 			float shapeCheck(float outColorAlpha) {
 				
 				#ifdef CHECK_SQUARE
-					if(gl_FragCoord.x > MIDDLE.x-RADIUS && gl_FragCoord.x < MIDDLE.x+RADIUS && gl_FragCoord.y > MIDDLE.y-RADIUS && gl_FragCoord.y < MIDDLE.y+RADIUS){
+					if(gl_FragCoord.x > MIDDLE.x-(RADIUS) && gl_FragCoord.x < MIDDLE.x+RADIUS && gl_FragCoord.y > MIDDLE.y-RADIUS && gl_FragCoord.y < MIDDLE.y+RADIUS){
 					  
 						if(gl_FragCoord.x < MIDDLE.x-(RADIUS-THICKNESS) || gl_FragCoord.x > MIDDLE.x+(RADIUS-THICKNESS) || gl_FragCoord.y < MIDDLE.y-(RADIUS-THICKNESS) || gl_FragCoord.y > MIDDLE.y+(RADIUS-THICKNESS)){
 							outColorAlpha = 1.;
@@ -121,11 +121,11 @@
 				#ifdef CHECK_FLOWER_OF_LIFE
 					vec2 position = vec2(0.);
 	
-					for(float i = 1.; i <= NUM_FLOWER_LAYERS; i++)
+					for(float i = 0.; i < NUM_FLOWER_LAYERS; i++)
 					{		
-						for(float j = 1.; j <= 6.; j++){
+						for(float j = 0.; j < 6.; j++){
 							
-							for(float k = 1.; k <= NUM_FLOWER_LAYERS; k++){
+							for(float k = 0.; k < NUM_FLOWER_LAYERS; k++){
 								if(k <= i)
 								{
 									float angle = (float(j)*60.)+30.;
@@ -153,7 +153,7 @@
 					}
 					
 					//center circle
-					if(distance(gl_FragCoord.xy, MIDDLE) < FLOWER_CIRCLE_RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (FLOWER_CIRCLE_RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
+					//if(distance(gl_FragCoord.xy, MIDDLE) < FLOWER_CIRCLE_RADIUS && distance(gl_FragCoord.xy, MIDDLE) > (FLOWER_CIRCLE_RADIUS-THICKNESS) ){ outColorAlpha = 1.; }
 				#endif
 				
 				#ifdef CHECK_SEED_OF_LIFE

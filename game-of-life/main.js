@@ -58,7 +58,7 @@ function render() {
 }
 
 function resize() {
-  WIDTH = window.innerWidth;
+  WIDTH = window.innerWidth; if(WIDTH%2 != 0){ WIDTH -= 1; }
   HEIGHT = window.innerHeight;
   renderer.setSize(WIDTH, HEIGHT);
   renderer.setViewport(0, 0, WIDTH, HEIGHT);
