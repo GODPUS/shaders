@@ -14,7 +14,7 @@ var PARTICLE_COUNT = Math.pow( 2048, 2 );
 var PARTICLE_COUNT_SQRT = Math.sqrt( PARTICLE_COUNT );
 
 // How many texture slots each particle needs for it's data
-var PARTICLE_DATA_SLOTS = 2;
+var PARTICLE_DATA_SLOTS = 1;
 
 // The required size of the FBO containing the particle data
 var PARTICLE_TEXTURE_WIDTH = PARTICLE_COUNT_SQRT * PARTICLE_DATA_SLOTS;
@@ -202,14 +202,10 @@ gl.setup = function() {
         var iterateBy = 4 * PARTICLE_DATA_SLOTS;
 
         for (var i = 0; i < particleData.length; i += iterateBy) {
-            particleData[i] = Math.cos(i)*(i*.00000003); //x
-            particleData[i+1] = Math.sin(i)*(i*.00000003); //y
-            particleData[i+2] = 1; //z
-            particleData[i+3] = random( 10 ); //phase
-            particleData[i+4] = 0; //(Math.random()*2)-1; //velocityX
-            particleData[i+5] = 0; //(Math.random()*2)-1; //velocityY
-            particleData[i+6] = 0; //velocityZ
-            particleData[i+7] = 0; //empty data slot
+            particleData[i] = Math.cos(i)*(i*.00000005); //x
+            particleData[i+1] = Math.sin(i)*(i*.00000005); //y
+            particleData[i+2] = 0; //velocityX
+            particleData[i+3] = 0; //velocityY
         }
         
 
