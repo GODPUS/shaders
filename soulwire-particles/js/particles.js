@@ -8,7 +8,7 @@ Config
 */
 
 // Number of particles
-var PARTICLE_COUNT = Math.pow( 2048, 2 );
+var PARTICLE_COUNT = Math.pow( 4096, 2 );
 
 // Particle count must be power of 2
 var PARTICLE_COUNT_SQRT = Math.sqrt( PARTICLE_COUNT );
