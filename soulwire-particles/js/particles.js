@@ -66,6 +66,8 @@ var mouse = {
     angle: 0
 }
 
+var time = 0;
+
 var debugToggle = document.querySelector( '.toggle-fbo .toggle' );
 
 // Sketch instance (augmented WebGL context)
@@ -183,6 +185,7 @@ gl.setup = function() {
         physicsProgram.uMouseLoc = gl.getUniformLocation( physicsProgram, 'uMouse' );
 
         // Store render program attribute and uniform locations
+        renderProgram.uTimeLoc = gl.getUniformLocation( renderProgram, 'uTime' );
         renderProgram.uParticleTextureLoc = gl.getUniformLocation( renderProgram, 'uParticleTexture' );
         renderProgram.uParticleDataLoc = gl.getUniformLocation( renderProgram, 'uParticleData' );
         renderProgram.aParticleUVLoc = gl.getAttribLocation( renderProgram, 'aParticleUV' );
@@ -296,6 +299,7 @@ gl.setup = function() {
 
         // Set render program uniform values
         gl.useProgram( renderProgram );
+        gl.uniform1f( renderProgram.uTimeLoc, 0.0 );
         gl.uniform1i( renderProgram.uParticleDataLoc, particleDataTexture.unit );
         gl.uniform1i( renderProgram.uParticleTextureLoc, particleTexture.unit );
 
@@ -310,6 +314,8 @@ gl.setup = function() {
 
 gl.draw = function() {
     stats.begin();
+
+    time += 0.1;
 
     // 1. Physics step
 
@@ -340,12 +346,13 @@ gl.draw = function() {
 
     // For each particle, pull out the position and render it as a point to the screen
     gl.useProgram( renderProgram );
+    gl.uniform1f( renderProgram.uTimeLoc, time );
     gl.bindBuffer( gl.ARRAY_BUFFER, particleUVDataBuffer );
     gl.vertexAttribPointer( renderProgram.aParticleUVLoc, 2, gl.FLOAT, gl.FALSE, 0, 0 );
 
     // Draw with additive blending
-    gl.enable( gl.BLEND );
-    gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
+    //gl.enable( gl.BLEND );
+    //gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
     gl.drawArrays( gl.POINTS, 0, PARTICLE_COUNT );
 
     // 3. Debug step
