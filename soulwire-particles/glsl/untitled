@@ -26,7 +26,7 @@ void main() {
     //mouse check
     float proximity = distance(pos.xy*uViewport, uMouse.xy*uViewport);
 
-    //if( RADIUS > proximity ){
+    if( RADIUS > proximity ){
         //float angle = atan(pos.y-uMouse.y, pos.x-uMouse.x); //repel
         float angle = atan(uMouse.y-pos.y, uMouse.x-pos.x); //attract
         float forceX = abs(uMouse.x-pos.x)*(proximity);
@@ -34,7 +34,7 @@ void main() {
 
         vel.x += cos(angle)*(1.); 
         vel.y += sin(angle)*(1.); 
-    //}
+    }
 
     if( pos.x > 1.0 || pos.x < -1.0 ){ vel.x *= -1.0; }
     if( pos.y > 1.0 || pos.y < -1.0 ){ vel.y *= -1.0; }

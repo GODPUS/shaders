@@ -204,8 +204,8 @@ gl.setup = function() {
         for (var i = 0; i < particleData.length; i += iterateBy) {
             particleData[i] = Math.cos(i)*(i*.00000005); //x
             particleData[i+1] = Math.sin(i)*(i*.00000005); //y
-            particleData[i+2] = 0; //velocityX
-            particleData[i+3] = 0; //velocityY
+            particleData[i+2] = Math.cos(i)*(i*.000005); //velocityX
+            particleData[i+3] = Math.sin(i)*(i*.000005); //velocityY
         }
         
 
