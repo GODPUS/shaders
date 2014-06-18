@@ -2,7 +2,8 @@
 precision mediump float;
 
 const vec3 TARGET = vec3( 0, 0, 0.01 );
-const float RADIUS = 150.0;
+const float RADIUS = 0.1; //% of viewport
+const float PI = 3.14159265359;
 
 uniform sampler2D uParticleData;
 uniform vec2 uViewport;
@@ -22,26 +23,33 @@ void main() {
 
     pos += vel * (0.005);
 
-
     //mouse check
-    float proximity = distance(pos.xy*uViewport, uMouse.xy*uViewport);
+    float proximity = distance(pos.xy, uMouse.xy);
 
     //if( RADIUS > proximity ){
         //float angle = atan(pos.y-uMouse.y, pos.x-uMouse.x); //repel
         float angle = atan(uMouse.y-pos.y, uMouse.x-pos.x); //attract
-        float forceX = abs(uMouse.x-pos.x)*(proximity);
-        float forceY = abs(uMouse.y-pos.y)*(proximity);
+        float force = 1.-abs(proximity);
+        //float force = 1.; //constant force
 
-        vel.x += cos(angle)*(1.); 
-        vel.y += sin(angle)*(1.); 
+        vel.x += cos(angle)*force; 
+        vel.y += sin(angle)*force; 
     //}
 
-    if( pos.x > 1.0 || pos.x < -1.0 ){ vel.x *= -1.0; }
-    if( pos.y > 1.0 || pos.y < -1.0 ){ vel.y *= -1.0; }
+    
+    if( pos.x > 1.0 || pos.x < -1.0 ){ 
+        vel.x *= -1.0;
+        pos = vec2(0.0);
+    }
+    if( pos.y > 1.0 || pos.y < -1.0 ){ 
+        vel.y *= -1.0; 
+        pos = vec2(0.0);
+    }
+
 
     // Add a drag force
-    vel *= 0.991;
+    vel *= 0.99;
 
     // Write out the velocity data
-    gl_FragColor = vec4( vec2(pos), vec2(vel) );
+    gl_FragColor = vec4( pos, vel );
 }
