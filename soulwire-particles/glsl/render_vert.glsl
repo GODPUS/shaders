@@ -1,4 +1,3 @@
-
 attribute vec2 aParticleUV;
 
 uniform sampler2D uParticleData;

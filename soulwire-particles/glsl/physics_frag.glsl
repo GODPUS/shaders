@@ -39,11 +39,11 @@ void main() {
     
     if( pos.x > 1.0 || pos.x < -1.0 ){ 
         vel.x *= -1.0;
-        pos = vec2(0.0);
+        //pos = vec2(0.0);
     }
     if( pos.y > 1.0 || pos.y < -1.0 ){ 
         vel.y *= -1.0; 
-        pos = vec2(0.0);
+        //pos = vec2(0.0);
     }
 
 
