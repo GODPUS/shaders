@@ -183,6 +183,7 @@ gl.setup = function() {
         physicsProgram.uParticleDataLoc = gl.getUniformLocation( physicsProgram, 'uParticleData' );
         physicsProgram.uViewportLoc = gl.getUniformLocation( physicsProgram, 'uViewport' );
         physicsProgram.uMouseLoc = gl.getUniformLocation( physicsProgram, 'uMouse' );
+        physicsProgram.uTimeLoc = gl.getUniformLocation( physicsProgram, 'uTime' );
 
         // Store render program attribute and uniform locations
         renderProgram.uTimeLoc = gl.getUniformLocation( renderProgram, 'uTime' );
@@ -293,6 +294,7 @@ gl.setup = function() {
 
         // Set physics program uniform values
         gl.useProgram( physicsProgram );
+        gl.uniform1f( physicsProgram.uTimeLoc, 0.0 );
         gl.uniform1i( physicsProgram.uParticleDataLoc, 0 );
         gl.uniform2f( physicsProgram.uViewportLoc, PARTICLE_TEXTURE_WIDTH, PARTICLE_TEXTURE_HEIGHT );
         gl.uniform4f( physicsProgram.uMouseLoc, mouse.x, mouse.y, mouse.prevX, mouse.prevY );
@@ -324,6 +326,7 @@ gl.draw = function() {
 
     // Prepare the physics program to execute per fragment of the particle data texture
     gl.useProgram( physicsProgram );
+    gl.uniform1f( physicsProgram.uTimeLoc, time );
     gl.uniform4f( physicsProgram.uMouseLoc, mouse.x, mouse.y, mouse.prevX, mouse.prevY ); //send in mouse data
     gl.bindBuffer( gl.ARRAY_BUFFER, viewportQuadBuffer );
     gl.vertexAttribPointer( physicsProgram.aVertexPositionLoc, 2, gl.FLOAT, gl.FALSE, 0, 0 );
@@ -351,8 +354,8 @@ gl.draw = function() {
     gl.vertexAttribPointer( renderProgram.aParticleUVLoc, 2, gl.FLOAT, gl.FALSE, 0, 0 );
 
     // Draw with additive blending
-    //gl.enable( gl.BLEND );
-    //gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
+    gl.enable( gl.BLEND );
+    gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
     gl.drawArrays( gl.POINTS, 0, PARTICLE_COUNT );
 
     // 3. Debug step

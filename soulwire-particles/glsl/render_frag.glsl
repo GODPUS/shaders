@@ -13,7 +13,7 @@ vec3 hueToRGB(float hue) {
 void main() {
     vec4 color = texture2D( uParticleData, vParticleUV );
 
-    gl_FragColor = vec4(hueToRGB(mod((color.b)+(uTime*.1), 1.0)), 1.0); //rainbow
-    //gl_FragColor = vec4(1.0-abs(color.b*2.), 1.0-abs(color.a*2.), 1.0, 1.0); //blue and pink
+    //gl_FragColor = vec4(hueToRGB(mod((color.b)+(uTime*.1), 1.0)), 1.0); //rainbow
+    gl_FragColor = vec4(1.0, 1.0-abs(color.b*2.), 1.0-abs(color.a*2.), 1.0); //blue and pink
 
 }
