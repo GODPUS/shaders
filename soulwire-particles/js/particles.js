@@ -354,8 +354,8 @@ gl.draw = function() {
     gl.vertexAttribPointer( renderProgram.aParticleUVLoc, 2, gl.FLOAT, gl.FALSE, 0, 0 );
 
     // Draw with additive blending
-    gl.enable( gl.BLEND );
-    gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
+    //gl.enable( gl.BLEND );
+    //gl.blendFunc( gl.SRC_ALPHA, gl.ONE );
     gl.drawArrays( gl.POINTS, 0, PARTICLE_COUNT );
 
     // 3. Debug step

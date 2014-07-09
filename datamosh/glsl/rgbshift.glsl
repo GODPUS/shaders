@@ -2,13 +2,13 @@ uniform sampler2D currentFrame;
 uniform sampler2D previousFrame;
 uniform sampler2D backbuffer;
 uniform vec2 resolution;
+uniform float threshold;
 varying vec2 vUv;
 
 
 float force = 5.0;
 float offset = 3.0;
 float lambda = 0.01;
-float threshold = 0.1;
 float inverseX = -1.0;
 float inverseY = -1.0;
 
@@ -46,7 +46,7 @@ void main(){
 	flow *= vec4(force);
 	flow.z = length(flow.xy);
 
-	vec4 newColor = texture2D(backbuffer, vUv);
+	vec4 newColor = texture2D(currentFrame, vUv); //switch between currentFrame and backbuffer for different effects
 
 	if (length(flow.xy) > threshold){
 		newColor = texture2D(backbuffer, vec2((gl_FragCoord.x+clamp(flow.x, -1.0, 1.0))/resolution.x, (gl_FragCoord.y+clamp(flow.y, -1.0, 1.0))/resolution.y));

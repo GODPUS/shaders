@@ -14,10 +14,18 @@
     	-webkit-transform:rotateY(180deg); /* Safari and Chrome */
     	-moz-transform:rotateY(180deg); /* Firefox */
 	}
+
+	input {
+
+	}
 	</style>
+	<script>
+		window.THRESHOLD = 0.15;
+		window.setThreshold = function(value){ window.THRESHOLD = value; console.log(window.THRESHOLD); }
+	</script>
 </head>
 <body>
-
+	<input id="threshold" type="range" min="0" max="1" step="0.01" value="0.15" oninput="setThreshold(this.value)">
 	<div id="container"></div>
 	<script src="./js/three.min.js"></script>
 	<script src="./js/CopyShader.js"></script>

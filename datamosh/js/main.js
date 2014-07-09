@@ -38,7 +38,8 @@ function init(){
   	"currentFrame" : { type: "t",  value: videoTextureCurrent },
     "previousFrame" : { type: "t",  value: videoTexturePrevious },
     "backbuffer" : { type: "t",  value: videoTextureStill },
-    "resolution" : { type: "v2", value: new THREE.Vector2(WIDTH, HEIGHT) }
+    "resolution" : { type: "v2", value: new THREE.Vector2(WIDTH, HEIGHT) },
+    "threshold"  : { type: "f", value: window.THRESHOLD }
   };
 
   var simQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: shaders.vertex, fragmentShader: shaders.rgbshift }) );
@@ -53,6 +54,8 @@ function init(){
 var i = 0;
 
 function render() {
+
+	simUniforms.threshold.value = window.THRESHOLD;
 
 	if ( video.readyState === video.HAVE_ENOUGH_DATA ) {
 	  if ( videoTextureCurrent ) videoTextureCurrent.needsUpdate = true;
@@ -71,15 +74,27 @@ function render() {
 	renderer.render(displayScene, camera);
 	requestAnimationFrame(render);
 
-
+	
 	if( i%10 === 0 && !BLOOM)
 	{
 		if ( video.readyState === video.HAVE_ENOUGH_DATA ) {
 		  if ( videoTexturePrevious ) videoTexturePrevious.needsUpdate = true;
 		}
 	}
+
+	if(BLOOM){
+		simUniforms.previousFrame.value = videoTexturePrevious;
+	}else{
+		simUniforms.previousFrame.value = backBuffer;
+	}
+	
 	
 	i++;
+}
+
+function takeStill() {
+	videoTextureStill.needsUpdate = true;
+	simUniforms.backbuffer.value = videoTextureStill;
 }
 
 function resize() {
@@ -94,6 +109,7 @@ window.onload = function(){
   	getWebcamVideo(function(){
   		init();
     	resize();
+    	takeStill();
     	requestAnimationFrame(render); 
   	});
   });
@@ -109,8 +125,7 @@ window.onkeypress = function(){
 		case 32:
 			if ( video.readyState === video.HAVE_ENOUGH_DATA ) {
 			  if ( videoTextureStill ){
-			  	videoTextureStill.needsUpdate = true;
-			  	simUniforms.backbuffer.value = videoTextureStill;
+			  	takeStill();
 			  }
 			}
 		break;
