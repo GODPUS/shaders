@@ -1,94 +1,80 @@
-var WIDTH = window.innerWidth;
-var HEIGHT = window.innerHeight;
+var RESOLUTION = 1024; //power of 2
 var MOUSE = { x: 0, y: 0 };
 var CLOCK = new THREE.Clock();
 var BUFFER_STATE = 0;
-var BLOOM = false;
+var USE_MIC = false;
 
-var canvas, video, videoTextureCurrent, videoTexturePrevious, videoTextureStill, simUniforms, simScene, simBuffer, backBuffer, displayScene, camera, renderer, outQuad;
+var canvas, video, videoTextureCurrent, videoTextureStill, simUniforms, simScene, simBuffer, backBuffer, displayScene, camera, renderer, outQuad;
+var mic = null;
 
 var shaders = {
     vertex: '',
-    rgbshift: ''
+    datamosh: ''
 };
 
 function init(){
-  camera = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 1 );
-  renderer = new THREE.WebGLRenderer();
-  canvas = renderer.domElement;
-  document.body.appendChild(canvas);
-  renderer.autoClear = false;
+	camera = new THREE.OrthographicCamera( -1, 1, 1, -1, 0, 1 );
+	renderer = new THREE.WebGLRenderer();
+	canvas = renderer.domElement;
+	document.body.appendChild(canvas);
+	renderer.autoClear = false;
 
-  simBuffer =  new THREE.WebGLRenderTarget( WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
-  backBuffer = new THREE.WebGLRenderTarget( WIDTH, HEIGHT, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
+	simBuffer =  new THREE.WebGLRenderTarget( RESOLUTION, RESOLUTION, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
+	backBuffer = new THREE.WebGLRenderTarget( RESOLUTION, RESOLUTION, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat } );
 
-  simScene = new THREE.Scene();
-  displayScene = new THREE.Scene();
+	simScene = new THREE.Scene();
+	displayScene = new THREE.Scene();
 
-  //init video texture
+	//init video texture
 	videoTextureCurrent = new THREE.Texture( video );
 	videoTextureCurrent.minFilter = THREE.LinearFilter;
 	videoTextureCurrent.magFilter = THREE.LinearFilter;
 
 	//init video texture
-	videoTexturePrevious = videoTextureCurrent.clone();
 	videoTextureStill = videoTextureCurrent.clone();
 
 	simUniforms = { 
-  	"currentFrame" : { type: "t",  value: videoTextureCurrent },
-    "previousFrame" : { type: "t",  value: videoTexturePrevious },
-    "backbuffer" : { type: "t",  value: videoTextureStill },
-    "resolution" : { type: "v2", value: new THREE.Vector2(WIDTH, HEIGHT) },
-    "threshold"  : { type: "f", value: window.THRESHOLD }
-  };
+		"currentFrame" : { type: "t",  value: videoTextureCurrent },
+		"backbuffer" : { type: "t",  value: backBuffer },
+		"resolution" : { type: "v2", value: new THREE.Vector2(RESOLUTION, RESOLUTION) },
+		"threshold"  : { type: "f", value: window.THRESHOLD }
+	};
 
-  var simQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: shaders.vertex, fragmentShader: shaders.rgbshift }) );
-  simScene.add(simQuad);
-  simScene.add(camera);
+	var simQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: shaders.vertex, fragmentShader: shaders.datamosh }) );
+	simScene.add(simQuad);
+	simScene.add(camera);
 
-  outQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.MeshBasicMaterial({ map: simBuffer }) );
-  displayScene.add(outQuad);
-  displayScene.add(camera);
+	outQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.MeshBasicMaterial({ map: simBuffer }) );
+	displayScene.add(outQuad);
+	displayScene.add(camera);
 }
 
 var i = 0;
 
 function render() {
 
-	simUniforms.threshold.value = window.THRESHOLD;
-
-	if ( video.readyState === video.HAVE_ENOUGH_DATA ) {
-	  if ( videoTextureCurrent ) videoTextureCurrent.needsUpdate = true;
+	if(USE_MIC && mic && mic.isInitialized()){ 
+		window.THRESHOLD = (1-(Math.abs(mic.getMaxInputAmplitude())/120))/2;
+		console.log(window.THRESHOLD)
 	}
 
+	simUniforms.threshold.value = window.THRESHOLD;
+
+	if ( video.readyState === video.HAVE_ENOUGH_DATA ) { if ( videoTextureCurrent ) videoTextureCurrent.needsUpdate = true; }
+
 	if (!BUFFER_STATE) {
-	  renderer.render(simScene, camera, backBuffer, false);
-	  simUniforms.backbuffer.value = backBuffer;
-	  BUFFER_STATE = 1;
+		renderer.render(simScene, camera, backBuffer, false);
+		simUniforms.backbuffer.value = backBuffer;
+		BUFFER_STATE = 1;
 	} else {
-	  renderer.render(simScene, camera, simBuffer, false);
-	  simUniforms.backbuffer.value = simBuffer;
-	  BUFFER_STATE = 0;
+		renderer.render(simScene, camera, simBuffer, false);
+		simUniforms.backbuffer.value = simBuffer;
+		BUFFER_STATE = 0;
 	}
 
 	renderer.render(displayScene, camera);
 	requestAnimationFrame(render);
 
-	
-	if( i%10 === 0 && !BLOOM)
-	{
-		if ( video.readyState === video.HAVE_ENOUGH_DATA ) {
-		  if ( videoTexturePrevious ) videoTexturePrevious.needsUpdate = true;
-		}
-	}
-
-	if(BLOOM){
-		simUniforms.previousFrame.value = videoTexturePrevious;
-	}else{
-		simUniforms.previousFrame.value = backBuffer;
-	}
-	
-	
 	i++;
 }
 
@@ -98,19 +84,29 @@ function takeStill() {
 }
 
 function resize() {
-  WIDTH = window.innerWidth; if(WIDTH%2 != 0){ WIDTH -= 1; }
-  HEIGHT = window.innerHeight;
-  renderer.setSize(WIDTH, HEIGHT);
-  simUniforms.resolution.value = new THREE.Vector2(WIDTH, HEIGHT);
+  renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 window.onload = function(){ 
   loadShaders(function(){ 
   	getWebcamVideo(function(){
   		init();
-    	resize();
-    	takeStill();
-    	requestAnimationFrame(render); 
+		resize();
+		takeStill();
+		requestAnimationFrame(render);
+
+		if(USE_MIC){
+			mic = new Microphone();
+	  		mic.initialize();
+
+	  		var waitForMic = setInterval(function(){
+	  			if(mic.isInitialized()){
+	  				clearInterval(waitForMic);
+	    			mic.startListening();
+	  			}
+	  		}, 300);
+		}
+  		
   	});
   });
 }
@@ -123,16 +119,8 @@ window.onkeypress = function(){
 
 	switch(window.event.keyCode) {
 		case 32:
-			if ( video.readyState === video.HAVE_ENOUGH_DATA ) {
-			  if ( videoTextureStill ){
-			  	takeStill();
-			  }
-			}
-		break;
-
-		case 98:
-			BLOOM = true;
-		break;  
+			if (video.readyState === video.HAVE_ENOUGH_DATA && videoTextureStill){ takeStill(); }
+		break; 
 	}  
 }
 
@@ -141,7 +129,7 @@ window.onkeyup = function(){
 
 	switch(window.event.keyCode) {
 		case 66:
-			BLOOM = false;
+			
 		break;  
 	}  
 }
@@ -179,7 +167,7 @@ function getWebcamVideo(callback){
 	//Use webcam
 	video = document.createElement('video');
 	video.width = 320;
-	video.height = 240;
+	video.height = 320;
 	video.autoplay = true;
 	video.loop = true;
 	//Webcam video
