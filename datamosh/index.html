@@ -21,11 +21,14 @@
 	</style>
 	<script>
 		window.THRESHOLD = 0.15;
+		window.SHIFT = 10.0;
 		window.setThreshold = function(value){ window.THRESHOLD = value; console.log(window.THRESHOLD); }
+		window.setShift = function(value){ window.SHIFT = value; console.log(window.SHIFT); }
 	</script>
 </head>
 <body>
 	<input id="threshold" type="range" min="0" max="1" step="0.01" value="0.15" oninput="setThreshold(this.value)">
+	<input id="clamp" type="range" min="0" max="50" step="0.1" value="10" oninput="setShift(this.value)">
 	<div id="container"></div>
 	<script src="./js/three.min.js"></script>
 	<script src="./js/microphone.js"></script>

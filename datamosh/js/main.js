@@ -35,9 +35,11 @@ function init(){
 
 	simUniforms = { 
 		"currentFrame" : { type: "t",  value: videoTextureCurrent },
-		"backbuffer" : { type: "t",  value: backBuffer },
-		"resolution" : { type: "v2", value: new THREE.Vector2(RESOLUTION, RESOLUTION) },
-		"threshold"  : { type: "f", value: window.THRESHOLD }
+		"backbuffer"   : { type: "t",  value: backBuffer },
+		"resolution"   : { type: "v2", value: new THREE.Vector2(RESOLUTION, RESOLUTION) },
+		"threshold"    : { type: "f", value: window.THRESHOLD },
+		"time"         : { type: "f", value: 0 },
+		"shift"         : { type: "f", value: window.SHIFT }
 	};
 
 	var simQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: shaders.vertex, fragmentShader: shaders.datamosh }) );
@@ -55,10 +57,11 @@ function render() {
 
 	if(USE_MIC && mic && mic.isInitialized()){ 
 		window.THRESHOLD = (1-(Math.abs(mic.getMaxInputAmplitude())/120))/2;
-		console.log(window.THRESHOLD)
 	}
 
 	simUniforms.threshold.value = window.THRESHOLD;
+	simUniforms.shift.value = window.SHIFT;
+	simUniforms.time.value += 1;
 
 	if ( video.readyState === video.HAVE_ENOUGH_DATA ) { if ( videoTextureCurrent ) videoTextureCurrent.needsUpdate = true; }
 
