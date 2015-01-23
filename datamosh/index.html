@@ -8,6 +8,7 @@
 		background-color: #000;
 		margin: 0px;
 		overflow: hidden;
+		color: white;
 	}
 	canvas {
 		transform: rotateY(180deg);
@@ -22,13 +23,26 @@
 	<script>
 		window.THRESHOLD = 0.15;
 		window.SHIFT = 10.0;
+		window.USE_RGB_SHIFT = true;
+		window.USE_HUE_SHIFT = true;
+
 		window.setThreshold = function(value){ window.THRESHOLD = value; console.log(window.THRESHOLD); }
 		window.setShift = function(value){ window.SHIFT = value; console.log(window.SHIFT); }
+		window.setRGBShift = function(isChecked){ 
+			window.USE_RGB_SHIFT = isChecked ? 1 : 0; 
+			console.log(window.USE_RGB_SHIFT); 
+		}
+		window.setHueShift = function(isChecked){ 
+			window.USE_HUE_SHIFT = isChecked ? 1 : 0; 
+			console.log(window.USE_HUE_SHIFT); 
+		}
 	</script>
 </head>
 <body>
-	<input id="threshold" type="range" min="0" max="1" step="0.01" value="0.15" oninput="setThreshold(this.value)">
-	<input id="clamp" type="range" min="0" max="50" step="0.1" value="10" oninput="setShift(this.value)">
+	Threshold <input id="threshold" type="range" min="0" max="1" step="0.01" value="0.15" oninput="setThreshold(this.value)">
+	Shift <input id="shift" type="range" min="0" max="50" step="0.1" value="10" oninput="setShift(this.value)">
+	RGB Shift? <input id="rgbshift" type="checkbox" checked="true" onclick="setRGBShift(this.checked)">
+	Hue Shift? <input id="hueShift" type="checkbox" checked="true" onclick="setHueShift(this.checked)">
 	<div id="container"></div>
 	<script src="./js/three.min.js"></script>
 	<script src="./js/microphone.js"></script>

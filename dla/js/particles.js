@@ -8,7 +8,7 @@ Config
 */
 
 // Number of particles
-var PARTICLE_COUNT = Math.pow( 2048, 2 );
+var PARTICLE_COUNT = Math.pow( 1024, 2 );
 
 // Particle count must be power of 2
 var PARTICLE_COUNT_SQRT = Math.sqrt( PARTICLE_COUNT );
@@ -206,10 +206,10 @@ gl.setup = function() {
         var iterateBy = 4 * PARTICLE_DATA_SLOTS;
 
         for (var i = 0; i < particleData.length; i += iterateBy) {
-            particleData[i] = 0; //x
-            particleData[i+1] = 0; //y
-            particleData[i+2] = Math.cos(i)*(i*.000005); //velocityX
-            particleData[i+3] = Math.sin(i)*(i*.000005); //velocityY
+            particleData[i] = Math.cos(i)*(i*0.0000002); //x
+            particleData[i+1] = Math.sin(i)*(i*0.0000002); //y
+            particleData[i+2] = 0; //velocityX
+            particleData[i+3] = 0; //velocityY
         }
         
 

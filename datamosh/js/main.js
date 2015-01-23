@@ -39,7 +39,9 @@ function init(){
 		"resolution"   : { type: "v2", value: new THREE.Vector2(RESOLUTION, RESOLUTION) },
 		"threshold"    : { type: "f", value: window.THRESHOLD },
 		"time"         : { type: "f", value: 0 },
-		"shift"         : { type: "f", value: window.SHIFT }
+		"shift"        : { type: "f", value: window.SHIFT },
+		"USE_RGB_SHIFT": { type: "i", value: window.USE_RGB_SHIFT },
+		"USE_HUE_SHIFT": { type: "i", value: window.USE_HUE_SHIFT }
 	};
 
 	var simQuad = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), new THREE.ShaderMaterial({ uniforms: simUniforms, vertexShader: shaders.vertex, fragmentShader: shaders.datamosh }) );
@@ -61,6 +63,8 @@ function render() {
 
 	simUniforms.threshold.value = window.THRESHOLD;
 	simUniforms.shift.value = window.SHIFT;
+	simUniforms.USE_RGB_SHIFT.value = window.USE_RGB_SHIFT;
+	simUniforms.USE_HUE_SHIFT.value = window.USE_HUE_SHIFT;
 	simUniforms.time.value += 1;
 
 	if ( video.readyState === video.HAVE_ENOUGH_DATA ) { if ( videoTextureCurrent ) videoTextureCurrent.needsUpdate = true; }

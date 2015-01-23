@@ -6,6 +6,10 @@ uniform float time;
 uniform float shift;
 varying vec2 vUv;
 
+uniform int USE_RGB_SHIFT;
+uniform int USE_HUE_SHIFT;
+
+
 const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.522591, 0.114, -0.321263, 0.311135 );
 const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 
@@ -40,6 +44,8 @@ void main(){
 	vec4	f4l = vec4(lambda);
 	vec4	flow = vec4(0.0);
 
+	offset = shift;
+
 	//get the difference
 	scr_dif = texture2D(currentFrame, st) - texture2D(backbuffer, st);
 
@@ -70,17 +76,20 @@ void main(){
 		pos.x = gl_FragCoord.x+flow.x;
 		pos.y = gl_FragCoord.y+flow.y;
 
+		if(USE_RGB_SHIFT > 0){
+			float r = texture2D(backbuffer, vec2((pos.x+cos(flow.x))/resolution.x, (pos.y+sin(flow.y))/resolution.y)).r;
+			float g = texture2D(backbuffer, vec2(pos.x/resolution.x, pos.y/resolution.y)).g;
+			float b = texture2D(backbuffer, vec2((pos.x-cos(flow.x))/resolution.x, (pos.y-sin(flow.y))/resolution.y)).b;
+
+			newColor.rgb = vec3(r, g, b);
+		}else{
+			newColor = texture2D(backbuffer, vec2(pos.x/resolution.x, pos.y/resolution.y));
+		}
 		
-		float r = texture2D(backbuffer, vec2((pos.x+cos(flow.x))/resolution.x, (pos.y+sin(flow.y))/resolution.y)).r;
-		float g = texture2D(backbuffer, vec2(pos.x/resolution.x, pos.y/resolution.y)).g;
-		float b = texture2D(backbuffer, vec2((pos.x-cos(flow.x))/resolution.x, (pos.y-sin(flow.y))/resolution.y)).b;
-
-		newColor.rgb = vec3(r, g, b);
+		if(USE_HUE_SHIFT > 0){
+			newColor.rgb = hueShift(newColor.rgb, length(flow.xy)*shift);
+		}
 		
-
-		//newColor = texture2D(backbuffer, vec2(pos.x/resolution.x, pos.y/resolution.y));
-		newColor.rgb = hueShift(newColor.rgb, length(flow.xy)*shift);
-
 	}else{
 		newColor = texture2D(currentFrame, vUv);
 	}
