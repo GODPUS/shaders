@@ -1,0 +1,617 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebGL Shader Lab - Diffusion Mix [Fullscreen]</title>
+<script id="shader-vs" type="x-shader/x-vertex"> 
+  attribute vec3 aPos;
+  attribute vec2 aTexCoord;
+  varying   vec2 pixel;
+void main(void) {
+   gl_Position = vec4(aPos, 1.);
+   pixel = aTexCoord;
+}
+</script>
+
+<script id="shader-fs-blur-horizontal" type="x-shader/x-fragment">
+#ifdef GL_ES
+precision highp float;
+#endif
+// original shader from http://www.gamerendering.com/2008/10/11/gaussian-blur-filter-shader/
+// horizontal blur fragment shader
+uniform sampler2D src_tex;
+varying vec2 pixel;
+uniform vec2 pixelSize;
+void main(void) // fragment
+{
+	float h = pixelSize.x;
+	vec4 sum = vec4(0.0);
+	sum += texture2D(src_tex, vec2(pixel.x - 4.0*h, pixel.y) ) * 0.05;
+	sum += texture2D(src_tex, vec2(pixel.x - 3.0*h, pixel.y) ) * 0.09;
+	sum += texture2D(src_tex, vec2(pixel.x - 2.0*h, pixel.y) ) * 0.12;
+	sum += texture2D(src_tex, vec2(pixel.x - 1.0*h, pixel.y) ) * 0.15;
+	sum += texture2D(src_tex, vec2(pixel.x + 0.0*h, pixel.y) ) * 0.16;
+	sum += texture2D(src_tex, vec2(pixel.x + 1.0*h, pixel.y) ) * 0.15;
+	sum += texture2D(src_tex, vec2(pixel.x + 2.0*h, pixel.y) ) * 0.12;
+	sum += texture2D(src_tex, vec2(pixel.x + 3.0*h, pixel.y) ) * 0.09;
+	sum += texture2D(src_tex, vec2(pixel.x + 4.0*h, pixel.y) ) * 0.05;
+    gl_FragColor.xyz = sum.xyz/0.98; // normalize
+	gl_FragColor.a = 1.;
+} 
+</script>
+
+<script id="shader-fs-blur-vertical" type="x-shader/x-fragment">
+#ifdef GL_ES
+precision highp float;
+#endif
+// original shader from http://www.gamerendering.com/2008/10/11/gaussian-blur-filter-shader/
+// vertical blur fragment shader
+uniform sampler2D src_tex;
+varying vec2 pixel;
+uniform vec2 pixelSize;
+void main(void) // fragment
+{
+	float v = pixelSize.y;
+	vec4 sum = vec4(0.0);
+	sum += texture2D(src_tex, vec2(pixel.x, - 4.0*v + pixel.y) ) * 0.05;
+	sum += texture2D(src_tex, vec2(pixel.x, - 3.0*v + pixel.y) ) * 0.09;
+	sum += texture2D(src_tex, vec2(pixel.x, - 2.0*v + pixel.y) ) * 0.12;
+	sum += texture2D(src_tex, vec2(pixel.x, - 1.0*v + pixel.y) ) * 0.15;
+	sum += texture2D(src_tex, vec2(pixel.x, + 0.0*v + pixel.y) ) * 0.16;
+	sum += texture2D(src_tex, vec2(pixel.x, + 1.0*v + pixel.y) ) * 0.15;
+	sum += texture2D(src_tex, vec2(pixel.x, + 2.0*v + pixel.y) ) * 0.12;
+	sum += texture2D(src_tex, vec2(pixel.x, + 3.0*v + pixel.y) ) * 0.09;
+	sum += texture2D(src_tex, vec2(pixel.x, + 4.0*v + pixel.y) ) * 0.05;
+    gl_FragColor.xyz = sum.xyz/0.98;
+	gl_FragColor.a = 1.;
+}
+</script>
+
+<script id="shader-fs-advance" type="x-shader/x-fragment"> 
+#ifdef GL_ES
+precision highp float;
+#endif
+
+	uniform sampler2D sampler_prev;
+	uniform sampler2D sampler_prev_n;
+	uniform sampler2D sampler_blur;
+	uniform sampler2D sampler_noise;
+	uniform sampler2D sampler_noise_n;
+	uniform sampler2D sampler_camera;
+
+	varying vec2 pixel;
+	uniform vec2 pixelSize;
+	uniform vec4 rnd;
+	uniform vec2 mouse;
+	uniform float time;
+
+void main(void) {
+	float speed = 0.96;
+
+	vec2 zoom_in = mouse + (pixel-mouse)*speed; //0.9 to mouse.y*2.0
+	vec4 rand_noise = (texture2D(sampler_noise, zoom_in + vec2(rnd.x, rnd.y)) + texture2D(sampler_camera, zoom_in))/1.5;
+	zoom_in += (rand_noise.yz-0.5)*pixelSize*1.; // error-diffusion
+	gl_FragColor = texture2D(sampler_prev, zoom_in) + (rand_noise-0.5)*0.1; //0.1 to mouse.x
+
+	vec4 blurPlusCameraAverage = (texture2D(sampler_blur, zoom_in) + texture2D(sampler_camera, zoom_in)) * 0.5;
+	blurPlusCameraAverage = texture2D(sampler_camera, zoom_in); //uncomment to turn blur off
+	gl_FragColor += (blurPlusCameraAverage - texture2D(sampler_prev, zoom_in)) * 0.024; // reaction-diffusion
+
+	gl_FragColor.a = 1.;
+}
+</script>
+
+<script id="shader-fs-composite" type="x-shader/x-fragment"> 
+#ifdef GL_ES
+precision highp float;
+#endif
+
+	uniform sampler2D sampler_prev;
+	uniform sampler2D sampler_prev_n;
+	uniform sampler2D sampler_blur;
+	uniform sampler2D sampler_noise;
+	uniform sampler2D sampler_noise_n;
+	uniform sampler2D sampler_camera;
+
+	varying vec2 pixel;
+	uniform vec2 pixelSize;
+	uniform vec4 rnd;
+	uniform vec2 mouse;
+	uniform float time;
+
+void main(void) {
+	// negative
+	gl_FragColor = texture2D(sampler_prev, pixel);
+	gl_FragColor.a = 1.;
+}
+</script>
+
+<script type="text/javascript">
+	function BrowserSize() {
+		if (typeof (window.innerWidth) == 'number') {
+			//Non-IE
+			this.width = window.innerWidth;
+			this.height = window.innerHeight;
+		} else if (document.documentElement && (document.documentElement.clientWidth || document.documentElement.clientHeight)) {
+			//IE 6+ in 'standards compliant mode'
+			this.width = document.documentElement.clientWidth;
+			this.height = document.documentElement.clientHeight;
+		} else if (document.body && (document.body.clientWidth || document.body.clientHeight)) {
+			//IE 4 compatible
+			this.width = document.body.clientWidth;
+			this.height = document.body.clientHeight;
+		}
+	}
+	BrowserSize.prototype.width;
+	BrowserSize.prototype.height;
+
+	function getShader(gl, id) {
+		var shaderScript = document.getElementById(id);
+		var str = "";
+		var k = shaderScript.firstChild;
+		while (k) {
+			if (k.nodeType == 3)
+				str += k.textContent;
+			k = k.nextSibling;
+		}
+		var shader;
+		if (shaderScript.type == "x-shader/x-fragment")
+			shader = gl.createShader(gl.FRAGMENT_SHADER);
+		else if (shaderScript.type == "x-shader/x-vertex")
+			shader = gl.createShader(gl.VERTEX_SHADER);
+		else
+			return null;
+		gl.shaderSource(shader, str);
+		gl.compileShader(shader);
+		if (gl.getShaderParameter(shader, gl.COMPILE_STATUS) == 0)
+			alert(gl.getShaderInfoLog(shader));
+		return shader;
+	}
+
+	requestAnimFrame = (function() {
+		return window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || function(callback, element) {
+			setTimeout(callback, 1000 / 60);
+		};
+	})();
+
+	function initTexture() {
+		texture_camera = gl.createTexture();
+		texture_camera.image = new Image();
+		texture_camera.image.onload = function() {
+		  handleLoadedTexture(texture_camera);
+		}
+
+		texture_camera.image.src = "texture.jpg";
+	}
+
+	function handleLoadedTexture(texture) {
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+		gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, texture.image);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.bindTexture(gl.TEXTURE_2D, null);
+	}
+
+	var camera = null;
+	var hasCamera = false;
+	var frame = null;
+	var framectx = null;
+
+	var gl;
+	var prog_advance;
+	var prog_composite;
+	var prog_blur_horizontal;
+	var prog_blur_vertical;
+	var FBO_main;
+	var FBO_main2;
+	var FBO_helper;
+	var FBO_blur;
+	var FBO_noise;
+	var rawData;
+	var texture_main_l; // main, linear
+	var texture_main_n; // main, nearest (accurate pixel access on the same buffer)
+	var texture_main2_l; // main double buffer, linear
+	var texture_main2_n; // main double buffer, nearest (accurate pixel access on the same buffer)
+	var texture_helper; // to be used when a buffer for multi-pass shader programs is needed (2-pass Gaussian blur)
+	var texture_blur; // blur result
+	var texture_noise_n; // noise pixel accurate
+	var texture_noise_l; // noise interpolated pixel access
+	var texture_camera;
+
+	var halted = false;
+	var it = 1;
+	var frames = 0;
+	var time;
+	var mouseX = 0.5;
+	var mouseY = 0.5;
+	var animation;
+	var timer;
+	var sizeX = 512;
+	var sizeY = 512;
+	var viewX = 512;
+	var viewY = 512;
+	var mouseDown = false;
+
+	function setMaximalSize() {
+		browserSize = new BrowserSize();
+		c.width = viewX = browserSize.width;
+		c.height = viewY = browserSize.height;
+	}
+
+	function load() {
+		clearInterval(timer);
+		var c = document.getElementById("c");
+		try {
+			gl = c.getContext("experimental-webgl", { depth : false });
+		} catch (e) {
+		}
+		if (!gl) {
+			alert("Your browser does not support WebGL");
+			return;
+		}
+		c.onmousemove = function(evt) {
+			mouseX = evt.offsetX / viewX;
+			mouseY = 1 - evt.offsetY / viewY;
+		};
+
+		document.onmousedown = function(evt) {
+			mouseDown = true;
+		};
+		document.onmouseup = function(evt) {
+			mouseDown = false;
+		};
+
+		sizeX = 2048;
+		sizeY = 2048;
+
+		camera = document.getElementById("camera");
+		camera.width = sizeX;
+		camera.height = sizeY;
+
+		frame = document.getElementById("frame");
+		frame.width = sizeX;
+		frame.height = sizeY;
+		framectx = frame.getContext('2d');
+
+		navigator.getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+
+		if (navigator.getUserMedia) {
+		   navigator.getUserMedia ({ video: true },
+		      // successCallback
+		      function(localMediaStream) {
+		         camera.src = window.URL.createObjectURL(localMediaStream);
+
+		         setTimeout(function(){ afterCamera(); }, 1000);
+		      },
+
+		      // errorCallback
+		      function(err) {
+		         console.log("The following error occured: ", err);
+		      }
+		   );
+		} else {
+		   console.log("getUserMedia not supported");
+		}
+
+		//afterCamera();
+	}
+
+	function afterCamera() {
+
+		setMaximalSize();
+
+		prog_advance = gl.createProgram();
+		gl.attachShader(prog_advance, getShader(gl, "shader-vs"));
+		gl.attachShader(prog_advance, getShader(gl, "shader-fs-advance"));
+		gl.linkProgram(prog_advance);
+
+		prog_composite = gl.createProgram();
+		gl.attachShader(prog_composite, getShader(gl, "shader-vs"));
+		gl.attachShader(prog_composite, getShader(gl, "shader-fs-composite"));
+		gl.linkProgram(prog_composite);
+
+		prog_blur_horizontal = gl.createProgram();
+		gl.attachShader(prog_blur_horizontal, getShader(gl, "shader-vs"));
+		gl.attachShader(prog_blur_horizontal, getShader(gl, "shader-fs-blur-horizontal"));
+		gl.linkProgram(prog_blur_horizontal);
+
+		prog_blur_vertical = gl.createProgram();
+		gl.attachShader(prog_blur_vertical, getShader(gl, "shader-vs"));
+		gl.attachShader(prog_blur_vertical, getShader(gl, "shader-fs-blur-vertical"));
+		gl.linkProgram(prog_blur_vertical);
+
+		var posBuffer = gl.createBuffer();
+		gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+
+		var vertices = new Float32Array([ -1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0 ]);
+
+		var aPosLoc = gl.getAttribLocation(prog_advance, "aPos");
+		gl.enableVertexAttribArray(aPosLoc);
+
+		var aTexLoc = gl.getAttribLocation(prog_advance, "aTexCoord");
+		gl.enableVertexAttribArray(aTexLoc);
+
+		var texCoords = new Float32Array([ 0, 0, 1, 0, 0, 1, 1, 1 ]);
+
+		var texCoordOffset = vertices.byteLength;
+
+		gl.bufferData(gl.ARRAY_BUFFER, texCoordOffset + texCoords.byteLength, gl.STATIC_DRAW);
+		gl.bufferSubData(gl.ARRAY_BUFFER, 0, vertices);
+		gl.bufferSubData(gl.ARRAY_BUFFER, texCoordOffset, texCoords);
+		gl.vertexAttribPointer(aPosLoc, 3, gl.FLOAT, gl.FALSE, 0, 0);
+		gl.vertexAttribPointer(aTexLoc, 2, gl.FLOAT, gl.FALSE, 0, texCoordOffset);
+
+
+		var noisepixels = [];
+		var pixels = [];
+		for ( var i = 0; i < sizeX; i++) {
+			for ( var j = 0; j < sizeY; j++) {
+				noisepixels.push(Math.random()*255, Math.random()*255, Math.random()*255, 255);
+				pixels.push(0, 0, 0, 255);
+			}
+		}
+
+		rawData = new Uint8Array(noisepixels);
+		texture_main_l = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_main_l);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		texture_main_n = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_main_n);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+		rawData = new Uint8Array(noisepixels);
+		rawData = new Uint8Array(noisepixels);
+		texture_main2_l = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_main2_l);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		texture_main2_n = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_main2_n);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+		rawData = new Uint8Array(pixels);
+		texture_helper = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_helper);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		rawData = new Uint8Array(pixels);
+		texture_blur = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_blur);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		rawData = new Uint8Array(noisepixels);
+		texture_noise_l = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_noise_l);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+		texture_noise_n = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, texture_noise_n);
+		gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, sizeX, sizeY, 0, gl.RGBA, gl.UNSIGNED_BYTE, rawData);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+		initTexture();
+
+		// gl.uniform1i(gl.getUniformLocation(prog, "uTexSamp"), 0);
+		FBO_main = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_main);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture_main_l, 0);
+
+		FBO_main2 = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_main2);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture_main2_l, 0);
+
+		FBO_helper = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_helper);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture_helper, 0);
+
+		FBO_blur = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_blur);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture_blur, 0);
+
+		FBO_noise = gl.createFramebuffer();
+		gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_noise);
+		gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture_noise_l, 0);
+
+		gl.useProgram(prog_advance);
+		setUniforms(prog_advance);
+
+		gl.useProgram(prog_blur_horizontal);
+		gl.uniform2f(gl.getUniformLocation(prog_blur_horizontal, "pixelSize"), 1. / sizeX, 1. / sizeY);
+		gl.uniform1i(gl.getUniformLocation(prog_blur_horizontal, "src_tex"), 0);
+
+		gl.useProgram(prog_blur_vertical);
+		gl.uniform2f(gl.getUniformLocation(prog_blur_vertical, "pixelSize"), 1. / sizeX, 1. / sizeY);
+		gl.uniform1i(gl.getUniformLocation(prog_blur_vertical, "src_tex"), 0);
+
+		gl.useProgram(prog_composite);
+		setUniforms(prog_composite);
+
+		gl.activeTexture(gl.TEXTURE2);
+		gl.bindTexture(gl.TEXTURE_2D, texture_blur);
+
+		gl.activeTexture(gl.TEXTURE3);
+		gl.bindTexture(gl.TEXTURE_2D, texture_noise_l);
+
+		gl.activeTexture(gl.TEXTURE4);
+		gl.bindTexture(gl.TEXTURE_2D, texture_noise_n);
+
+		calculateBlurTexture();
+
+		time = new Date().getTime();
+		animation = "animate";
+		anim();
+	}
+
+	function setUniforms(program) {
+		gl.uniform2f(gl.getUniformLocation(program, "pixelSize"), 1. / sizeX, 1. / sizeY);
+		gl.uniform4f(gl.getUniformLocation(program, "rnd"), Math.random(), Math.random(), Math.random(), Math.random());
+		gl.uniform1f(gl.getUniformLocation(program, "time"), time);
+		gl.uniform2f(gl.getUniformLocation(program, "mouse"), mouseX, mouseY);
+		gl.uniform1i(gl.getUniformLocation(program, "sampler_prev"), 0);
+		gl.uniform1i(gl.getUniformLocation(program, "sampler_prev_n"), 1);
+		gl.uniform1i(gl.getUniformLocation(program, "sampler_blur"), 2);
+		gl.uniform1i(gl.getUniformLocation(program, "sampler_noise"), 3);
+		gl.uniform1i(gl.getUniformLocation(program, "sampler_noise_n"), 4);
+		gl.uniform1i(gl.getUniformLocation(program, "sampler_camera"), 5);
+	}
+	function calculateBlurTexture() {
+		// horizontal
+		gl.viewport(0, 0, sizeX, sizeY);
+		gl.useProgram(prog_blur_horizontal);
+		gl.activeTexture(gl.TEXTURE0);
+		if (it < 0) {
+			gl.bindTexture(gl.TEXTURE_2D, texture_main2_l);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_helper);
+		} else {
+			gl.bindTexture(gl.TEXTURE_2D, texture_main_l);
+			gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_helper);
+		}
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.flush();
+
+		// vertical
+		gl.viewport(0, 0, sizeX, sizeY);
+		gl.useProgram(prog_blur_vertical);
+		gl.activeTexture(gl.TEXTURE0);
+		gl.bindTexture(gl.TEXTURE_2D, texture_helper);
+		gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_blur);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.flush();
+
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.flush();
+	}
+	function draw() {
+		framectx.drawImage(camera, 0, 0, sizeX, sizeY);
+		texture_camera.image = frame;
+		handleLoadedTexture(texture_camera);
+		gl.activeTexture(gl.TEXTURE5);
+    	gl.bindTexture(gl.TEXTURE_2D, texture_camera);
+
+		// advance
+		gl.viewport(0, 0, sizeX, sizeY);
+		gl.useProgram(prog_advance);
+		setUniforms(prog_advance);
+
+		if (it > 0) {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main_l); // interpolated input
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main_n); // "nearest" input
+			gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_main2); // write to buffer
+		} else {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main2_l); // interpolated
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main2_n); // "nearest"
+			gl.bindFramebuffer(gl.FRAMEBUFFER, FBO_main); // write to buffer
+		}
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.flush();
+
+		calculateBlurTexture();
+
+		// composite
+		gl.viewport(0, 0, viewX, viewY);
+		gl.useProgram(prog_composite);
+		setUniforms(prog_composite);
+		if (it < 0) {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main_l);
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main_n);
+		} else {
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main2_l);
+			gl.activeTexture(gl.TEXTURE1);
+			gl.bindTexture(gl.TEXTURE_2D, texture_main2_n);
+		}
+		gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+		gl.flush();
+
+		it = -it;
+		frames++;
+	}
+	function anim() {
+		if (!halted) {
+			draw();
+		}
+		switch (animation) {
+		case "animate":
+			setTimeout("requestAnimFrame(anim)", 1);
+			break;
+		case "reset":
+			load();
+			break;
+		}
+	}
+</script>
+<style type="text/css">
+body {
+	background-color: #000000;
+	margin: 0px;
+	padding: 0px;
+	margin: 0px;
+}
+
+#c {
+	/*display: none;*/
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+
+a {
+	color: #FFFFFF;
+}
+
+#camera {
+	display: none;
+	position: absolute;
+	top: 400px;
+	left: 0px;
+	z-index: 99998;
+}
+
+#frame {
+	display: none;
+	position: absolute;
+	top: 800px;
+	left: 0px;
+	z-index: 99999;
+}
+
+</style>
+</head>
+<body onload="load()" onresize="setMaximalSize()">
+	<canvas id="c" width="100%" height="100%"></canvas>
+	<video id="camera" autoplay></video>
+	<canvas id="frame"></canvas>
+</body>
+</html>

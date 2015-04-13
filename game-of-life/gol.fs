@@ -26,8 +26,8 @@
 			float GRADIENT_FREQUENCY = .0005;
 			#define GRADIENT
 
-			//#define CHECK_SQUARE
-			#define CHECK_CIRCLE
+			#define CHECK_SQUARE
+			//#define CHECK_CIRCLE
 			//#define CHECK_SEED_OF_LIFE
 			//#define CHECK_MOUSE
 
