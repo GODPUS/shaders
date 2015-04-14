@@ -94,7 +94,7 @@ void main(void) {
 
 	if(distance < (head.z)){ useCamera = true; }
 
-	float zoomSpeed = 0.96; //0.9 to mouse.y*2.0
+	float zoomSpeed = 1.0-(length(mouse - vec2(0.5, 0.5))*0.1); //0.9 to mouse.y*2.0
 	vec2 m = vec2(head.x, head.y);
 	vec2 zoom_in = m + (pixel-m)*zoomSpeed;
 	vec4 rand_noise = texture2D(sampler_noise, zoom_in + vec2(rnd.x, rnd.y));
