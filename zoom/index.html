@@ -3,6 +3,7 @@
 <html>
 <head>
 <title>WebGL Shader Lab - Diffusion Mix [Fullscreen]</title>
+<script src="headtrackr.js"></script>
 <script id="shader-vs" type="x-shader/x-vertex"> 
   attribute vec3 aPos;
   attribute vec2 aTexCoord;
@@ -84,18 +85,30 @@ precision highp float;
 	uniform vec4 rnd;
 	uniform vec2 mouse;
 	uniform float time;
+	uniform vec4 head;
 
 void main(void) {
-	float speed = 0.96;
+	bool useCamera = false;
 
-	vec2 zoom_in = mouse + (pixel-mouse)*speed; //0.9 to mouse.y*2.0
-	vec4 rand_noise = (texture2D(sampler_noise, zoom_in + vec2(rnd.x, rnd.y)) + texture2D(sampler_camera, zoom_in))/1.5;
+	float distance = length(vec2(head.x, head.y) - pixel);
+
+	if(distance < (head.z)){ useCamera = true; }
+
+	float zoomSpeed = 0.96; //0.9 to mouse.y*2.0
+	vec2 m = vec2(head.x, head.y);
+	vec2 zoom_in = m + (pixel-m)*zoomSpeed;
+	vec4 rand_noise = texture2D(sampler_noise, zoom_in + vec2(rnd.x, rnd.y));
+
+	//if(useCamera){ rand_noise = (rand_noise + texture2D(sampler_camera, zoom_in))/1.5; } //add in camera and average
+	if(useCamera){ rand_noise = mix(texture2D(sampler_camera, zoom_in), rand_noise, 1.0-(length(distance - head.z)*2.0)); } //mix camera and rand noise
 	zoom_in += (rand_noise.yz-0.5)*pixelSize*1.; // error-diffusion
 	gl_FragColor = texture2D(sampler_prev, zoom_in) + (rand_noise-0.5)*0.1; //0.1 to mouse.x
 
-	vec4 blurPlusCameraAverage = (texture2D(sampler_blur, zoom_in) + texture2D(sampler_camera, zoom_in)) * 0.5;
-	blurPlusCameraAverage = texture2D(sampler_camera, zoom_in); //uncomment to turn blur off
-	gl_FragColor += (blurPlusCameraAverage - texture2D(sampler_prev, zoom_in)) * 0.024; // reaction-diffusion
+
+	vec4 blur = texture2D(sampler_blur, zoom_in);
+	//if(useCamera){ blur = (blur + texture2D(sampler_camera, zoom_in)) * 0.5; } //add in camera and average
+	if(useCamera){ blur = mix(texture2D(sampler_camera, zoom_in), blur, 0.1); } //mix camera and blur
+	gl_FragColor += (blur - texture2D(sampler_prev, zoom_in)) * 0.024; // reaction-diffusion
 
 	gl_FragColor.a = 1.;
 }
@@ -193,10 +206,13 @@ void main(void) {
 		gl.bindTexture(gl.TEXTURE_2D, null);
 	}
 
+	var head = { x: 0.5, y: 0.5, width: 0.5, height: 0.5 };
+
 	var camera = null;
 	var hasCamera = false;
 	var frame = null;
 	var framectx = null;
+	var cameraSize = 512; //power of 2
 
 	var gl;
 	var prog_advance;
@@ -266,12 +282,12 @@ void main(void) {
 		sizeY = 2048;
 
 		camera = document.getElementById("camera");
-		camera.width = sizeX;
-		camera.height = sizeY;
+		camera.width = cameraSize;
+		camera.height = cameraSize;
 
 		frame = document.getElementById("frame");
-		frame.width = sizeX;
-		frame.height = sizeY;
+		frame.width = cameraSize;
+		frame.height = cameraSize;
 		framectx = frame.getContext('2d');
 
 		navigator.getUserMedia = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
@@ -298,6 +314,17 @@ void main(void) {
 	}
 
 	function afterCamera() {
+
+		var htracker = new headtrackr.Tracker();
+  		htracker.init(camera, frame, false);
+  		htracker.start();
+
+  		document.addEventListener("facetrackingEvent", function(event){
+  			head.x = event.x/cameraSize;
+  			head.y = 1-(event.y/cameraSize); //flip y
+  			head.width = event.width/cameraSize;
+  			head.height = event.height/cameraSize;
+  		});
 
 		setMaximalSize();
 
@@ -472,6 +499,7 @@ void main(void) {
 		gl.uniform4f(gl.getUniformLocation(program, "rnd"), Math.random(), Math.random(), Math.random(), Math.random());
 		gl.uniform1f(gl.getUniformLocation(program, "time"), time);
 		gl.uniform2f(gl.getUniformLocation(program, "mouse"), mouseX, mouseY);
+		gl.uniform4f(gl.getUniformLocation(program, "head"), head.x, head.y, head.width, head.height);
 		gl.uniform1i(gl.getUniformLocation(program, "sampler_prev"), 0);
 		gl.uniform1i(gl.getUniformLocation(program, "sampler_prev_n"), 1);
 		gl.uniform1i(gl.getUniformLocation(program, "sampler_blur"), 2);
@@ -507,7 +535,9 @@ void main(void) {
 		gl.flush();
 	}
 	function draw() {
-		framectx.drawImage(camera, 0, 0, sizeX, sizeY);
+		time = new Date().getTime();
+
+		framectx.drawImage(camera, 0, 0, cameraSize, cameraSize);
 		texture_camera.image = frame;
 		handleLoadedTexture(texture_camera);
 		gl.activeTexture(gl.TEXTURE5);
