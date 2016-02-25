@@ -21,12 +21,14 @@
 	}
 	</style>
 	<script>
-		window.THRESHOLD = 0.15;
+		window.OFFSET = 3.0;
+		window.THRESHOLD = 0.015;
 		window.SHIFT = 10.0;
-		window.USE_RGB_SHIFT = true;
-		window.USE_HUE_SHIFT = true;
+		window.USE_RGB_SHIFT = false;
+		window.USE_HUE_SHIFT = false;
 
-		window.setThreshold = function(value){ window.THRESHOLD = value; console.log(window.THRESHOLD); }
+		window.setThreshold = function(value){ window.THRESHOLD = value; }
+		window.setOffset = function(value){ window.OFFSET = value; }
 		window.setShift = function(value){ window.SHIFT = value; console.log(window.SHIFT); }
 		window.setRGBShift = function(isChecked){ 
 			window.USE_RGB_SHIFT = isChecked ? 1 : 0; 
@@ -39,7 +41,8 @@
 	</script>
 </head>
 <body>
-	Threshold <input id="threshold" type="range" min="0" max="1" step="0.01" value="0.15" oninput="setThreshold(this.value)">
+	Threshold <input id="threshold" type="range" min="0" max="1" step="0.01" value="0.015" oninput="setThreshold(this.value)">
+	Offset <input id="offset" type="range" min="0.0" max="300.0" step="1.0" value="3.0" oninput="setOffset(this.value)">
 	Shift <input id="shift" type="range" min="0" max="50" step="0.1" value="10" oninput="setShift(this.value)">
 	RGB Shift? <input id="rgbshift" type="checkbox" checked="true" onclick="setRGBShift(this.checked)">
 	Hue Shift? <input id="hueShift" type="checkbox" checked="true" onclick="setHueShift(this.checked)">

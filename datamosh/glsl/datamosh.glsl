@@ -2,6 +2,7 @@ uniform sampler2D currentFrame;
 uniform sampler2D backbuffer;
 uniform vec2 resolution;
 uniform float threshold;
+uniform float offset;
 uniform float time;
 uniform float shift;
 varying vec2 vUv;
@@ -14,7 +15,6 @@ const mat3 rgb2yiq = mat3( 0.299, 0.595716, 0.211456, 0.587, -0.274453, -0.52259
 const mat3 yiq2rgb = mat3( 1.0, 1.0, 1.0, 0.9563, -0.2721, -1.1070, 0.6210, -0.6474, 1.7046 );
 
 float force = 5.0;
-float offset = 3.0;
 float lambda = 0.01;
 float inverseX = -1.0;
 float inverseY = -1.0;
@@ -32,8 +32,8 @@ vec3 hueShift(vec3 color, float degree){
 void main(){
 	vec2 st = vUv;
 
-	vec2	off_x = vec2(offset, 0.0);
-	vec2	off_y = vec2(0.0, offset);
+	vec2	off_x = vec2(offset/resolution.x, 0.0);
+	vec2	off_y = vec2(0.0, offset/resolution.y);
 
 	vec4	scr_dif;
 	vec4	gradx;
@@ -43,8 +43,6 @@ void main(){
 	vec4	vy;
 	vec4	f4l = vec4(lambda);
 	vec4	flow = vec4(0.0);
-
-	offset = shift;
 
 	//get the difference
 	scr_dif = texture2D(currentFrame, st) - texture2D(backbuffer, st);

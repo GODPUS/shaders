@@ -38,6 +38,7 @@ function init(){
 		"backbuffer"   : { type: "t",  value: backBuffer },
 		"resolution"   : { type: "v2", value: new THREE.Vector2(RESOLUTION, RESOLUTION) },
 		"threshold"    : { type: "f", value: window.THRESHOLD },
+		"offset"       : { type: "f", value: window.OFFSET },
 		"time"         : { type: "f", value: 0 },
 		"shift"        : { type: "f", value: window.SHIFT },
 		"USE_RGB_SHIFT": { type: "i", value: window.USE_RGB_SHIFT },
@@ -62,6 +63,7 @@ function render() {
 	}
 
 	simUniforms.threshold.value = window.THRESHOLD;
+	simUniforms.offset.value = window.OFFSET;
 	simUniforms.shift.value = window.SHIFT;
 	simUniforms.USE_RGB_SHIFT.value = window.USE_RGB_SHIFT;
 	simUniforms.USE_HUE_SHIFT.value = window.USE_HUE_SHIFT;
